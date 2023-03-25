@@ -61,7 +61,10 @@ class SeamImage:
             Use NumpyPy vectorized matrix multiplication for high performance.
             To prevent outlier values in the boundaries, we recommend to pad them with 0.5
         """
-        raise NotImplementedError("TODO: Implement SeamImage.rgb_to_grayscale")
+        grayscale_img = np.dot(np_img[..., :3], self.gs_weights)
+        grayscale_img = np.pad(grayscale_img, [(1, 1), (1, 1), (0, 0)], mode='constant', constant_values=0.5)
+
+        return grayscale_img
 
     def calc_gradient_magnitude(self):
         """ Calculate gradient magnitude of a grayscale image
@@ -72,8 +75,12 @@ class SeamImage:
         Guidelines & hints:
             In order to calculate a gradient of a pixel, only its neighborhood is required.
         """
-        raise NotImplementedError("TODO: Implement SeamImage.calc_gradient_magnitude")
-        
+        e_vertical = np.diff(self.gs[1:], axis=1)
+        e_horizontal = np.diff(self.gs[:, 1:], axis=0)
+        gradient_magnitude = np.sqrt(e_vertical**2 + e_horizontal**2)
+
+        return gradient_magnitude
+
     def calc_M(self):
         pass
              
