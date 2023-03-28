@@ -61,7 +61,7 @@ class SeamImage:
             Use NumpyPy vectorized matrix multiplication for high performance.
             To prevent outlier values in the boundaries, we recommend to pad them with 0.5
         """
-        grayscale_img = np.dot(np_img[..., :3], self.gs_weights)
+        grayscale_img = np.dot(np_img, self.gs_weights)
         grayscale_img = np.pad(grayscale_img, [(1, 1), (1, 1), (0, 0)], mode='constant', constant_values=0.5)
 
         return grayscale_img
@@ -75,11 +75,11 @@ class SeamImage:
         Guidelines & hints:
             In order to calculate a gradient of a pixel, only its neighborhood is required.
         """
-        e_vertical = np.diff(self.gs[1:], axis=1)
-        e_horizontal = np.diff(self.gs[:, 1:], axis=0)
+        e_vertical = np.diff(self.gs, axis=1, append=0.5)
+        e_horizontal = np.diff(self.gs, axis=0, append=0.5)
         gradient_magnitude = np.sqrt(e_vertical**2 + e_horizontal**2)
 
-        return gradient_magnitude
+        return (gradient_magnitude / 360) * 255
 
     def calc_M(self):
         pass
@@ -144,7 +144,14 @@ class ColumnSeamImage(SeamImage):
             The formula of calculation M is as taught, but with certain terms omitted.
             You might find the function 'np.roll' useful.
         """
-        raise NotImplementedError("TODO: Implement SeamImage.calc_M")
+        m = np.zeros_like(self.gs)
+        roll_right_gs = np.roll(self.gs, 1, axis=1)
+        roll_left_gs = np.roll(self.gs, -1, axis=1)
+        m[0, :] = self.E[0, :]
+        for row in range(1, self.h + 2):
+            m[row, :] = self.E[row, :] + m[row - 1, :] + np.abs(roll_left_gs[row, :] - roll_right_gs[row, :])
+
+        return m
 
     def seams_removal(self, num_remove: int):
         """ Iterates num_remove times and removes num_remove vertical seams
