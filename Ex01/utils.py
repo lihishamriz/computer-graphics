@@ -153,8 +153,8 @@ class ColumnSeamImage(SeamImage):
         roll_right = np.roll(self.resized_gs, 1, axis=1)
         C_V = np.abs(roll_left - roll_right)
         M = self.E + C_V
-        # M[:, 0] = self.E[:, 0]
-        # M[:, -1] = self.E[:, -1]
+        M[:, 0] = self.E[:, 0]
+        M[:, -1] = self.E[:, -1]
         M = np.cumsum(M, axis=0)
 
         return M
@@ -197,15 +197,34 @@ class ColumnSeamImage(SeamImage):
             self.update_M(min_seam_idx)
         self.seams_rgb[~self.cumm_mask] = (1, 0, 0)
 
-    # TODO: improve calc_gradient_magnitude
     def update_E(self, seam_idx):
-        # self.E = np.delete(self.E, seam_idx, axis=1)
-        self.E = self.calc_gradient_magnitude()
+        self.E = np.delete(self.E, seam_idx, axis=1)
+        if seam_idx > 0:
+            col = self.resized_gs[:, seam_idx - 1]
+            horizontal = np.abs(col - np.roll(col, -1))
+            horizontal[-1] = horizontal[-2]
+            if seam_idx == self.w:
+                vertical = self.E[:, self.w - 1]
+            else:
+                vertical = np.abs(col - self.resized_gs[:, seam_idx])
+            gradient = np.sqrt(horizontal ** 2 + vertical ** 2)
+            gradient[gradient > 1] = 1
+            self.E[:, seam_idx - 1] = gradient
 
-    # TODO: calc_M?
     def update_M(self, seam_idx):
-        # self.M = np.delete(self.M, seam_idx, axis=1)
-        self.M = self.calc_M()
+        self.M = np.delete(self.M, seam_idx, axis=1)
+        
+        roll_left = np.roll(self.resized_gs, -1, axis=1)
+        roll_right = np.roll(self.resized_gs, 1, axis=1)
+        C_V = np.abs(roll_left - roll_right)
+        if seam_idx == 0:
+            self.M[:, 0] = self.E[:, 0]
+        elif seam_idx == self.w:
+            self.M[:, -1] = self.E[:, -1]
+        else:
+            self.M[:, seam_idx - 1] = self.E[:, seam_idx - 1] + C_V[:, seam_idx - 1]
+            self.M[:, seam_idx] = self.E[:, seam_idx] + C_V[:, seam_idx]
+        self.M[:, seam_idx - 1:seam_idx + 1] = np.cumsum(self.M[:, seam_idx - 1:seam_idx + 1], axis=0)
 
     def seams_removal_horizontal(self, num_remove):
         """ Removes num_remove horizontal seams
