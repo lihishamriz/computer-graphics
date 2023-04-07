@@ -483,7 +483,7 @@ def scale_to_shape(orig_shape: np.ndarray, scale_factors: list):
     Returns
         the new shape
     """
-    raise NotImplementedError("TODO: Implement SeamImage.scale_to_shape")
+    return np.multiply(orig_shape, scale_factors).astype(int)
 
 def resize_seam_carving(seam_img: SeamImage, shapes: np.ndarray):
     """ Resizes an image using Seam Carving algorithm
@@ -495,8 +495,17 @@ def resize_seam_carving(seam_img: SeamImage, shapes: np.ndarray):
     Returns
         the resized rgb image
     """
-    raise NotImplementedError("TODO: Implement SeamImage.resize_seam_carving")
-
+    orig_shape = shapes[0]
+    new_shape = shapes[1]
+    vertical_num_remove = orig_shape[1] - new_shape[1]
+    horizontal_num_remove = orig_shape[0] - new_shape[0]
+    if vertical_num_remove > 0:
+        seam_img.seams_removal_vertical(vertical_num_remove)
+    if horizontal_num_remove > 0:
+        seam_img.seams_removal_horizontal(horizontal_num_remove)
+    
+    return seam_img.resized_rgb
+    
 def bilinear(image, new_shape):
     """
     Resizes an image to new shape using bilinear interpolation method
