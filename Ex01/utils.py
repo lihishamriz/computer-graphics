@@ -151,10 +151,10 @@ class ColumnSeamImage(SeamImage):
         """
         roll_left = np.roll(self.resized_gs, -1, axis=1)
         roll_right = np.roll(self.resized_gs, 1, axis=1)
-        Cv = np.abs(roll_left - roll_right)
-        M = self.E + Cv
-        M[:, 0] = self.E[:, 0]
-        M[:, -1] = self.E[:, -1]
+        C_V = np.abs(roll_left - roll_right)
+        M = self.E + C_V
+        # M[:, 0] = self.E[:, 0]
+        # M[:, -1] = self.E[:, -1]
         M = np.cumsum(M, axis=0)
 
         return M
@@ -274,6 +274,7 @@ class VerticalSeamImage(SeamImage):
         super().__init__(*args, **kwargs)
         try:
             self.M = self.calc_M()
+            self.mask = np.ones_like(self.M, dtype=bool)
         except NotImplementedError as e:
             print(e)
 
@@ -287,16 +288,19 @@ class VerticalSeamImage(SeamImage):
             As taught, the energy is calculated from top to bottom.
             You might find the function 'np.roll' useful.
         """
-        M = np.zeros_like(self.gs)
-        gs_roll_right = np.roll(self.gs, 1, axis=1)
-        gs_roll_left = np.roll(self.gs, -1, axis=1)
-        M[0, :] = self.E[0, :]
+        M = np.zeros_like(self.resized_gs)
+        roll_left = np.roll(self.resized_gs, -1, axis=1)
+        roll_right = np.roll(self.resized_gs, 1, axis=1)
+        roll_down = np.roll(self.resized_gs, 1, axis=0)
+        C_V = np.abs(roll_left - roll_right)
+        C_L = np.abs(roll_left - roll_right) + np.abs(roll_down - roll_right)
+        C_R = np.abs(roll_left - roll_right) + np.abs(roll_down - roll_left)
+        M[0] = self.E[0]
         for row in range(1, self.h):
-            energy = self.E[row, :]
-            left = np.roll(M, 1, axis=1)[row - 1, :] + np.abs(gs_roll_left[row, :] - gs_roll_right[row, :]) + np.abs(self.gs[row - 1, :] - gs_roll_right[row, :])
-            right = np.roll(M, -1, axis=1)[row - 1, :] + np.abs(gs_roll_left[row, :] - gs_roll_right[row, :]) + np.abs(self.gs[row - 1, :] - gs_roll_left[row, :])
-            vertical = M[row - 1, :] + np.abs(gs_roll_left[row, :] - gs_roll_right[row, :])
-            M[row, :] = energy + np.minimum(np.minimum(left, right), vertical)
+            vertical = M[row - 1] + C_V[row]
+            left = np.roll(M, 1, axis=1)[row - 1] + C_L[row]
+            right = np.roll(M, -1, axis=1)[row - 1] + C_R[row]
+            M[row] = self.E[row] + np.minimum(vertical, np.minimum(left, right))
         return M
 
     def seams_removal(self, num_remove: int):
@@ -323,9 +327,17 @@ class VerticalSeamImage(SeamImage):
             - removing seams couple of times (call the function more than once)
             - visualize the original image with removed seams marked (for comparison)
         """
-        for i in range(1, num_remove + 1):
+        self.M = self.calc_M()
+        for i in range(num_remove):
+            min_seam_idx = np.argmin(self.M[-1])
             self.backtrack_seam()
-        self.remove_seam()
+            self.remove_seam()
+            self.mask = np.delete(self.mask, min_seam_idx, axis=1)
+            self.idx_map_v = np.delete(self.idx_map_v, min_seam_idx, axis=1)
+            self.idx_map_h = np.delete(self.idx_map_h, min_seam_idx, axis=1)
+            self.E = self.calc_gradient_magnitude()
+            self.M = self.calc_M()
+        self.seams_rgb[~self.cumm_mask] = (1, 0, 0)
 
     def seams_removal_horizontal(self, num_remove):
         """ Removes num_remove horizontal seams
@@ -350,22 +362,22 @@ class VerticalSeamImage(SeamImage):
     def backtrack_seam(self):
         """ Backtracks a seam for Seam Carving as taught in lecture
         """
-        min_seam_idx = np.argmin(self.M[-1:, ])
-        rows, columns = self.rgb.shape[:2]
-        for i in reversed(range(rows)):
+        self.mask[:, :] = True
+        min_seam_idx = np.argmin(self.M[-1])
+        for i in range(self.h - 1, -1, -1):
+            self.mask[i, min_seam_idx] = False
             self.cumm_mask[i, self.idx_map_h[:, min_seam_idx]] = False
-            self.seams_rgb[:, min_seam_idx, :] = (1, 0, 0)
-            vertical = self.E[i, min_seam_idx] + self.M[i - 1, min_seam_idx] + np.abs(self.gs[i, min_seam_idx + 1] - self.gs[i, min_seam_idx - 1])
-            left = self.E[i, min_seam_idx] + self.M[i - 1, min_seam_idx - 1] + np.abs(self.gs[i, min_seam_idx + 1] - self.gs[i, min_seam_idx - 1]) + np.abs(self.gs[i - 1, min_seam_idx] - self.gs[i, min_seam_idx - 1])
+            vertical = self.E[i, min_seam_idx] + self.M[i - 1, min_seam_idx] + np.abs(
+                self.resized_gs[i, min_seam_idx + 1] - self.resized_gs[i, min_seam_idx - 1])
+            left = self.E[i, min_seam_idx] + self.M[i - 1, min_seam_idx - 1] + np.abs(
+                self.resized_gs[i, min_seam_idx + 1] - self.resized_gs[i, min_seam_idx - 1]) + np.abs(
+                self.resized_gs[i - 1, min_seam_idx] - self.resized_gs[i, min_seam_idx - 1])
             if self.M[i, min_seam_idx] == vertical:
                 min_seam_idx = min_seam_idx
             elif self.M[i, min_seam_idx] == left:
                 min_seam_idx = min_seam_idx - 1
             else:
                 min_seam_idx = min_seam_idx + 1
-        self.idx_map_v = np.delete(self.idx_map_v, min_seam_idx, axis=1)
-        self.idx_map_h = np.delete(self.idx_map_h, min_seam_idx, axis=1)
-        self.w = self.w - 1
 
     def remove_seam(self):
         """ Removes a seam from self.rgb (you may create a resized version, like self.resized_rgb)
@@ -373,8 +385,10 @@ class VerticalSeamImage(SeamImage):
         Guidelines & hints:
         In order to apply the removal, you might want to extend the seam mask to support 3 channels (rgb) using: 3d_mak = np.stack([1d_mask] * 3, axis=2), and then use it to create a resized version.
         """
-        three_d_mask = np.stack([self.cumm_mask] * 3, axis=2)
-        self.resized_rgb = self.rgb[three_d_mask].reshape(self.h, self.w, 3)
+        self.w = self.w - 1
+        three_d_mask = np.stack([self.mask] * 3, axis=2)
+        self.resized_gs = self.resized_gs[self.mask].reshape(self.h, self.w)
+        self.resized_rgb = self.resized_rgb[three_d_mask].reshape(self.h, self.w, 3)
     
     def seams_addition(self, num_add: int):
         """ BONUS: adds num_add seamn to the image
