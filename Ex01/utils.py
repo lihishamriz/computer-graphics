@@ -76,9 +76,9 @@ class SeamImage:
         Guidelines & hints:
             In order to calculate a gradient of a pixel, only its neighborhood is required.
         """
-        horizontal = np.abs(self.gs - np.roll(self.gs, -1, axis=0))
+        horizontal = np.abs(self.resized_gs - np.roll(self.resized_gs, -1, axis=0))
         horizontal[-1, :] = horizontal[-2, :]
-        vertical = np.abs(self.gs - np.roll(self.gs, -1, axis=1))
+        vertical = np.abs(self.resized_gs - np.roll(self.resized_gs, -1, axis=1))
         vertical[:, -1] = vertical[:, -2]
         gradient = np.sqrt(horizontal ** 2 + vertical ** 2)
         gradient[gradient > 1] = 1
@@ -228,7 +228,7 @@ class ColumnSeamImage(SeamImage):
 
         self.seams_removal(num_remove)
 
-        self.gs = np.rot90(self.gs, -1)
+        self.gs = np.rot90(self.gs, 1)
         self.resized_gs = np.rot90(self.resized_gs, 1)
         self.rgb = np.rot90(self.rgb, 1)
         self.resized_rgb = np.rot90(self.resized_rgb, 1)
