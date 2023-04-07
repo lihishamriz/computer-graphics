@@ -277,7 +277,17 @@ class VerticalSeamImage(SeamImage):
             As taught, the energy is calculated from top to bottom.
             You might find the function 'np.roll' useful.
         """
-        raise NotImplementedError("TODO: Implement SeamImage.calc_M")
+        M = np.zeros_like(self.gs)
+        gs_roll_right = np.roll(self.gs, 1, axis=1)
+        gs_roll_left = np.roll(self.gs, -1, axis=1)
+        M[0, :] = self.E[0, :]
+        for row in range(1, self.h):
+            energy = self.E[row, :]
+            left = np.roll(M, 1, axis=1)[row - 1, :] + np.abs(gs_roll_left[row, :] - gs_roll_right[row, :]) + np.abs(self.gs[row - 1, :] - gs_roll_right[row, :])
+            right = np.roll(M, -1, axis=1)[row - 1, :] + np.abs(gs_roll_left[row, :] - gs_roll_right[row, :]) + np.abs(self.gs[row - 1, :] - gs_roll_left[row, :])
+            vertical = M[row - 1, :] + np.abs(gs_roll_left[row, :] - gs_roll_right[row, :])
+            M[row, :] = energy + np.minimum(np.minimum(left, right), vertical)
+        return M
 
     def seams_removal(self, num_remove: int):
         """ Iterates num_remove times and removes num_remove vertical seams
@@ -303,7 +313,9 @@ class VerticalSeamImage(SeamImage):
             - removing seams couple of times (call the function more than once)
             - visualize the original image with removed seams marked (for comparison)
         """
-        raise NotImplementedError("TODO: Implement SeamImage.seams_removal")
+        for i in range(1, num_remove + 1):
+            self.backtrack_seam()
+        self.remove_seam()
 
     def seams_removal_horizontal(self, num_remove):
         """ Removes num_remove horizontal seams
@@ -323,13 +335,27 @@ class VerticalSeamImage(SeamImage):
         Parameters:
             num_remove (int): umber of vertical seam to be removed
         """
-
-        raise NotImplementedError("TODO: Implement SeamImage.seams_removal_vertical")
+        self.seams_removal(num_remove)
     
     def backtrack_seam(self):
         """ Backtracks a seam for Seam Carving as taught in lecture
         """
-        raise NotImplementedError("TODO: Implement SeamImage.backtrack_seam_b")
+        min_seam_idx = np.argmin(self.M[-1:, ])
+        rows, columns = self.rgb.shape[:2]
+        for i in reversed(range(rows)):
+            self.cumm_mask[i, self.idx_map_h[:, min_seam_idx]] = False
+            self.seams_rgb[:, min_seam_idx, :] = (1, 0, 0)
+            vertical = self.E[i, min_seam_idx] + self.M[i - 1, min_seam_idx] + np.abs(self.gs[i, min_seam_idx + 1] - self.gs[i, min_seam_idx - 1])
+            left = self.E[i, min_seam_idx] + self.M[i - 1, min_seam_idx - 1] + np.abs(self.gs[i, min_seam_idx + 1] - self.gs[i, min_seam_idx - 1]) + np.abs(self.gs[i - 1, min_seam_idx] - self.gs[i, min_seam_idx - 1])
+            if self.M[i, min_seam_idx] == vertical:
+                min_seam_idx = min_seam_idx
+            elif self.M[i, min_seam_idx] == left:
+                min_seam_idx = min_seam_idx - 1
+            else:
+                min_seam_idx = min_seam_idx + 1
+        self.idx_map_v = np.delete(self.idx_map_v, min_seam_idx, axis=1)
+        self.idx_map_h = np.delete(self.idx_map_h, min_seam_idx, axis=1)
+        self.w = self.w - 1
 
     def remove_seam(self):
         """ Removes a seam from self.rgb (you may create a resized version, like self.resized_rgb)
@@ -337,7 +363,8 @@ class VerticalSeamImage(SeamImage):
         Guidelines & hints:
         In order to apply the removal, you might want to extend the seam mask to support 3 channels (rgb) using: 3d_mak = np.stack([1d_mask] * 3, axis=2), and then use it to create a resized version.
         """
-        raise NotImplementedError("TODO: Implement SeamImage.remove_seam")
+        three_d_mask = np.stack([self.cumm_mask] * 3, axis=2)
+        self.resized_rgb = self.rgb[three_d_mask].reshape(self.h, self.w, 3)
     
     def seams_addition(self, num_add: int):
         """ BONUS: adds num_add seamn to the image
@@ -386,7 +413,9 @@ class VerticalSeamImage(SeamImage):
         Guidelines & hints:
             np.ndarray is a rederence type. changing it here may affected outsde.
         """
-        raise NotImplementedError("TODO: Implement SeamImage.calc_bt_mat")
+        # rows, columns = M.shape[:2]
+        # for i in reversed(rows):
+        #     for j in reversed(columns):
 
 def scale_to_shape(orig_shape: np.ndarray, scale_factors: list):
     """ Converts scale into shape
