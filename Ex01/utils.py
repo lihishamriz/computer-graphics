@@ -61,10 +61,13 @@ class SeamImage:
             Use NumpyPy vectorized matrix multiplication for high performance.
             To prevent outlier values in the boundaries, we recommend to pad them with 0.5
         """
-        grayscale_img = np.dot(np_img, self.gs_weights)
-        grayscale_img = np.pad(grayscale_img, [(1, 1), (1, 1), (0, 0)], mode='constant', constant_values=0.5)
+        gs = np.dot(np_img, self.gs_weights)
+        gs[0, :] = 0.5
+        gs[-1, :] = 0.5
+        gs[:, 0] = 0.5
+        gs[:, -1] = 0.5
 
-        return grayscale_img
+        return gs.reshape(self.h, self.w)
 
     def calc_gradient_magnitude(self):
         """ Calculate gradient magnitude of a grayscale image
@@ -75,8 +78,12 @@ class SeamImage:
         Guidelines & hints:
             In order to calculate a gradient of a pixel, only its neighborhood is required.
         """
-        e_vertical = np.diff(self.gs, axis=1, append=0.5)
-        e_horizontal = np.diff(self.gs, axis=0, append=0.5)
+        gs = self.gs
+        e_vertical = gs[:, 1:] - gs[:, :-1]
+        e_vertical = np.insert(e_vertical, self.w - 1, gs[:, -1] - gs[:, -2], axis=1)
+        e_horizontal = gs[1:, :] - gs[:-1, :]
+        e_horizontal = np.insert(e_horizontal, self.h - 1, gs[-1, :] - gs[-2, :], axis=0)
+
         gradient_magnitude = np.sqrt(e_vertical**2 + e_horizontal**2)
 
         return (gradient_magnitude / 360) * 255
@@ -145,10 +152,11 @@ class ColumnSeamImage(SeamImage):
             You might find the function 'np.roll' useful.
         """
         m = np.zeros_like(self.gs)
-        roll_right_gs = np.roll(self.gs, 1, axis=1)
-        roll_left_gs = np.roll(self.gs, -1, axis=1)
+        gs = self.gs
+        roll_right_gs = np.roll(gs, 1, axis=1)
+        roll_left_gs = np.roll(gs, -1, axis=1)
         m[0, :] = self.E[0, :]
-        for row in range(1, self.h + 2):
+        for row in range(1, self.h):
             m[row, :] = self.E[row, :] + m[row - 1, :] + np.abs(roll_left_gs[row, :] - roll_right_gs[row, :])
 
         return m
@@ -176,13 +184,27 @@ class ColumnSeamImage(SeamImage):
             - removing seams couple of times (call the function more than once)
             - visualize the original image with removed seams marked (for comparison)
         """
-        raise NotImplementedError("TODO: Implement SeamImage.seams_removal")
+        I = np.arange(self.w)
+        for i in range(1, num_remove + 1):
+            min_seam_idx = np.argmin(self.M[-1:, ])
+            # self.resized_rgb = np.delete(self.resized_rgb, min_seam_idx, axis=1)
+            self.cumm_mask[:, I[min_seam_idx]] = False
+            self.update_E(min_seam_idx)
+            self.update_M(min_seam_idx)
+            self.seams_rgb[:, min_seam_idx, :] = (255, 0, 0)
+            I = np.delete(I, min_seam_idx)
+        three_d_mask = np.stack([self.cumm_mask] * 3, axis=2)
+        self.resized_rgb = self.rgb[three_d_mask].reshape(self.h, self.w, 3)
 
     def update_E(self, seam_idx):
-        raise NotImplementedError("TODO: Implement SeamImage.update_E")
+        self.gs = np.delete(self.gs, seam_idx, axis=1)
+        self.E = np.delete(self.E, seam_idx, axis=1)
+        self.w = self.w - 1
+        self.calc_gradient_magnitude()
 
     def update_M(self, seam_idx):
-        raise NotImplementedError("TODO: Implement SeamImage.update_E")
+        self.M = np.delete(self.M, seam_idx, axis=1)
+        self.calc_M()
 
     def seams_removal_horizontal(self, num_remove):
         """ Removes num_remove horizontal seams
@@ -194,7 +216,19 @@ class ColumnSeamImage(SeamImage):
             You may find np.rot90 function useful
 
         """
-        raise NotImplementedError("TODO: Implement SeamImage.seams_removal_horizontal")
+        self.rgb = np.rot90(self.rgb, -1)
+        self.seams_rgb = np.rot90(self.rgb, -1)
+        self.seams_rgb = np.rot90(self.rgb, -1)
+        self.h, self.w = self.rgb.shape[:2]
+        self.gs = self.rgb_to_grayscale(self.rgb)
+        self.E = self.calc_gradient_magnitude()
+        self.resized_gs = self.gs.copy()
+        self.cumm_mask = np.ones_like(self.gs, dtype=bool)
+        self.M = self.calc_M()
+
+        self.seams_removal(num_remove)
+
+        self.rgb = np.rot90(self.rgb, 1)
 
     def seams_removal_vertical(self, num_remove):
         """ A wrapper for removing num_remove horizontal seams (just a recommendation)
@@ -202,7 +236,7 @@ class ColumnSeamImage(SeamImage):
         Parameters:
             num_remove (int): number of vertical seam to be removed
         """
-        raise NotImplementedError("TODO: Implement SeamImage.seams_removal_vertical")
+        self.seams_removal(num_remove)
 
     def backtrack_seam(self):
         """ Backtracks a seam for Column Seam Carving method
