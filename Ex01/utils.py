@@ -301,6 +301,8 @@ class VerticalSeamImage(SeamImage):
             left = np.roll(M, 1, axis=1)[row - 1] + C_L[row]
             right = np.roll(M, -1, axis=1)[row - 1] + C_R[row]
             M[row] = self.E[row] + np.minimum(vertical, np.minimum(left, right))
+            M[row, 0] = self.E[row, 0] + min(vertical[0], right[0])
+            M[row, self.w - 1] = self.E[row, self.w - 1] + min(vertical[0], left[0])
         return M
 
     def seams_removal(self, num_remove: int):
@@ -327,7 +329,9 @@ class VerticalSeamImage(SeamImage):
             - removing seams couple of times (call the function more than once)
             - visualize the original image with removed seams marked (for comparison)
         """
+        self.E = self.calc_gradient_magnitude()
         self.M = self.calc_M()
+        self.cumm_mask[:, :] = True
         for i in range(num_remove):
             min_seam_idx = np.argmin(self.M[-1])
             self.backtrack_seam()
@@ -349,7 +353,29 @@ class VerticalSeamImage(SeamImage):
             You may find np.rot90 function useful
 
         """
-        raise NotImplementedError("TODO: Implement SeamImage.seams_removal_horizontal")
+        self.gs = np.rot90(self.gs, -1)
+        self.resized_gs = np.rot90(self.resized_gs, -1)
+        self.rgb = np.rot90(self.rgb, -1)
+        self.resized_rgb = np.rot90(self.resized_rgb, -1)
+        self.seams_rgb = np.rot90(self.seams_rgb, -1)
+        self.mask = np.rot90(self.mask, -1)
+        self.cumm_mask = np.rot90(self.cumm_mask, -1)
+        self.h, self.w = self.w, self.h
+        old_h, old_w = self.rgb.shape[:2]
+        self.idx_map_h, self.idx_map_v = np.meshgrid(range(old_w), range(old_h))
+
+        self.seams_removal(num_remove)
+
+        self.gs = np.rot90(self.gs, 1)
+        self.resized_gs = np.rot90(self.resized_gs, 1)
+        self.rgb = np.rot90(self.rgb, 1)
+        self.resized_rgb = np.rot90(self.resized_rgb, 1)
+        self.seams_rgb = np.rot90(self.seams_rgb, 1)
+        self.mask = np.rot90(self.mask, 1)
+        self.cumm_mask = np.rot90(self.cumm_mask, 1)
+        self.h, self.w = self.w, self.h
+        old_h, old_w = self.rgb.shape[:2]
+        self.idx_map_h, self.idx_map_v = np.meshgrid(range(old_w), range(old_h))
 
     def seams_removal_vertical(self, num_remove):
         """ A wrapper for removing num_remove horizontal seams (just a recommendation)
@@ -367,16 +393,22 @@ class VerticalSeamImage(SeamImage):
         for i in range(self.h - 1, -1, -1):
             self.mask[i, min_seam_idx] = False
             self.cumm_mask[i, self.idx_map_h[:, min_seam_idx]] = False
-            vertical = self.E[i, min_seam_idx] + self.M[i - 1, min_seam_idx] + np.abs(
-                self.resized_gs[i, min_seam_idx + 1] - self.resized_gs[i, min_seam_idx - 1])
-            left = self.E[i, min_seam_idx] + self.M[i - 1, min_seam_idx - 1] + np.abs(
-                self.resized_gs[i, min_seam_idx + 1] - self.resized_gs[i, min_seam_idx - 1]) + np.abs(
-                self.resized_gs[i - 1, min_seam_idx] - self.resized_gs[i, min_seam_idx - 1])
-            if self.M[i, min_seam_idx] == vertical:
-                min_seam_idx = min_seam_idx
-            elif self.M[i, min_seam_idx] == left:
+            energy = self.E[i, min_seam_idx]
+            vertical = energy + self.M[i - 1, min_seam_idx]
+            right = energy
+            left = energy
+            if min_seam_idx > 0:
+                left += self.M[i - 1, min_seam_idx - 1] + np.abs(self.resized_gs[i - 1, min_seam_idx] - self.resized_gs[i, min_seam_idx - 1])
+            if min_seam_idx < self.w - 1:
+                right += self.M[i - 1, min_seam_idx + 1] + np.abs(self.resized_gs[i, min_seam_idx + 1] - self.resized_gs[i - 1, min_seam_idx])
+            if 0 < min_seam_idx < self.w - 1:
+                C_V = np.abs(self.resized_gs[i, min_seam_idx + 1] - self.resized_gs[i, min_seam_idx - 1])
+                vertical += C_V
+                left += C_V
+                right += C_V
+            if self.M[i, min_seam_idx] == left and min_seam_idx > 0:
                 min_seam_idx = min_seam_idx - 1
-            else:
+            elif self.M[i, min_seam_idx] == right and min_seam_idx < self.w - 1:
                 min_seam_idx = min_seam_idx + 1
 
     def remove_seam(self):
