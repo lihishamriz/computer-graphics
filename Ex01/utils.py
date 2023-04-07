@@ -76,19 +76,18 @@ class SeamImage:
         Guidelines & hints:
             In order to calculate a gradient of a pixel, only its neighborhood is required.
         """
-        e_horizontal = self.gs[:-1, :] - self.gs[1:, :]
-        e_horizontal_last_row = self.gs[-1, :] - self.gs[-2, :]
-        e_horizontal = np.abs(np.insert(e_horizontal, self.h - 1, e_horizontal_last_row, axis=0))
-        e_vertical = self.gs[:, :-1] - self.gs[:, 1:]
-        e_vertical_last_column = self.gs[:, -1] - self.gs[:, -2]
-        e_vertical = np.abs(np.insert(e_vertical, self.w - 1, e_vertical_last_column, axis=1))
-        gradient_magnitude = np.sqrt(e_vertical**2 + e_horizontal**2)
+        horizontal = np.abs(self.gs - np.roll(self.gs, -1, axis=0))
+        horizontal[-1, :] = horizontal[-2, :]
+        vertical = np.abs(self.gs - np.roll(self.gs, -1, axis=1))
+        vertical[:, -1] = vertical[:, -2]
+        gradient = np.sqrt(horizontal ** 2 + vertical ** 2)
+        gradient[gradient > 1] = 1
 
-        return gradient_magnitude / 360 * 255
+        return gradient
 
     def calc_M(self):
         pass
-             
+        
     def seams_removal(self, num_remove):
         pass
 
@@ -149,12 +148,14 @@ class ColumnSeamImage(SeamImage):
             The formula of calculation M is as taught, but with certain terms omitted.
             You might find the function 'np.roll' useful.
         """
-        M = np.zeros_like(self.gs)
-        gs_roll_right = np.roll(self.gs, 1, axis=1)
-        gs_roll_left = np.roll(self.gs, -1, axis=1)
-        M[0, :] = self.E[0, :]
-        for row in range(1, self.h):
-            M[row, :] = self.E[row, :] + M[row - 1, :] + np.abs(gs_roll_left[row, :] - gs_roll_right[row, :])
+        roll_left = np.roll(self.gs, -1, axis=1)
+        roll_right = np.roll(self.gs, 1, axis=1)
+        Cv = np.abs(roll_left - roll_right)
+        M = self.E + Cv
+        M[:, 0] = self.E[:, 0] + np.abs(roll_left[:, 0])
+        M[:, -1] = self.E[:, -1] + np.abs(roll_right[:, -1])
+        M = np.cumsum(M, axis=0)
+
         return M
 
     def seams_removal(self, num_remove: int):
