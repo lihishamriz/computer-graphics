@@ -422,7 +422,17 @@ class VerticalSeamImage(SeamImage):
             - Visualization: paint the added seams in green (0,255,0)
 
         """
-        raise NotImplementedError("TODO: Implement SeamImage.seams_addition")
+        self.E = self.calc_gradient_magnitude()
+        self.M = self.calc_M()
+        self.mask = np.ones_like(self.M, dtype=bool)
+        for i in range(num_add):
+            self.backtrack_seam()
+            self.w = self.w - 1
+            self.resized_gs = self.resized_gs[self.mask].reshape(self.h, self.w)
+            self.E = self.E[self.mask].reshape(self.h, self.w)
+            self.M = self.M[self.mask].reshape(self.h, self.w)
+            self.update_ref_mat()
+        self.seams_rgb[~self.cumm_mask] = (0, 1, 0)
     
     def seams_addition_horizontal(self, num_add):
         """ A wrapper for removing num_add horizontal seams (just a recommendation)
@@ -434,7 +444,9 @@ class VerticalSeamImage(SeamImage):
             You may find np.rot90 function useful
 
         """
-        raise NotImplementedError("TODO (Bonus): Implement SeamImage.seams_addition_horizontal")
+        self.rotate_mats(-1)
+        self.seams_addition(num_add)
+        self.rotate_mats(1)
 
     def seams_addition_vertical(self, num_add):
         """ A wrapper for removing num_add vertical seams (just a recommendation)
@@ -443,7 +455,7 @@ class VerticalSeamImage(SeamImage):
             num_add (int): number of vertical seam to be added
         """
 
-        raise NotImplementedError("TODO (Bonus): Implement SeamImage.seams_addition_vertical")
+        self.seams_addition(num_add)
 
     @staticmethod
     # @jit(nopython=True)
