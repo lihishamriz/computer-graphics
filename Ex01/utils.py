@@ -422,6 +422,7 @@ class VerticalSeamImage(SeamImage):
             - Visualization: paint the added seams in green (0,255,0)
 
         """
+        # Implemented only visualization of added seams in green
         self.E = self.calc_gradient_magnitude()
         self.M = self.calc_M()
         self.mask = np.ones_like(self.M, dtype=bool)
