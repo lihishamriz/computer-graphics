@@ -34,6 +34,7 @@ class SeamImage:
             self.gs = self.rgb_to_grayscale(self.rgb)
             self.resized_gs = self.gs.copy()
             self.cumm_mask = np.ones_like(self.gs, dtype=bool)
+            self.mask = np.ones_like(self.gs, dtype=bool)
         except NotImplementedError as e:
             print(e)
 
@@ -95,7 +96,19 @@ class SeamImage:
         pass
 
     def seams_removal_horizontal(self, num_remove):
-        pass
+        self.resized_gs = np.rot90(self.resized_gs, -1)
+        self.resized_rgb = np.rot90(self.resized_rgb, -1)
+        self.idx_map_h = np.rot90(self.idx_map_h, -1)
+        self.idx_map_v = np.rot90(self.idx_map_v, -1)
+        self.h, self.w = self.w, self.h
+    
+        self.seams_removal(num_remove)
+    
+        self.resized_gs = np.rot90(self.resized_gs, 1)
+        self.resized_rgb = np.rot90(self.resized_rgb, 1)
+        self.idx_map_h = np.rot90(self.idx_map_h, 1)
+        self.idx_map_v = np.rot90(self.idx_map_v, 1)
+        self.h, self.w = self.w, self.h
 
     def seams_removal_vertical(self, num_remove):
         pass
@@ -113,7 +126,13 @@ class SeamImage:
         pass
 
     def remove_seam(self):
-        pass
+        self.w = self.w - 1
+        three_d_mask = np.stack([self.mask] * 3, axis=2)
+        self.resized_gs = self.resized_gs[self.mask].reshape(self.h, self.w)
+        self.resized_rgb = self.resized_rgb[three_d_mask].reshape(self.h, self.w, 3)
+        self.idx_map_v = self.idx_map_v[self.mask].reshape(self.h, self.w)
+        self.idx_map_h = self.idx_map_h[self.mask].reshape(self.h, self.w)
+        self.mask = self.mask[self.mask].reshape(self.h, self.w)
 
     def reinit(self):
         """ re-initiates instance
@@ -135,7 +154,6 @@ class ColumnSeamImage(SeamImage):
         super().__init__(*args, **kwargs)
         try:
             self.M = self.calc_M()
-            self.mask = np.ones_like(self.M, dtype=bool)
         except NotImplementedError as e:
             print(e)
 
@@ -239,19 +257,7 @@ class ColumnSeamImage(SeamImage):
             You may find np.rot90 function useful
 
         """
-        self.resized_gs = np.rot90(self.resized_gs, -1)
-        self.resized_rgb = np.rot90(self.resized_rgb, -1)
-        self.idx_map_h = np.rot90(self.idx_map_h, -1)
-        self.idx_map_v = np.rot90(self.idx_map_v, -1)
-        self.h, self.w = self.w, self.h
-
-        self.seams_removal(num_remove)
-
-        self.resized_gs = np.rot90(self.resized_gs, 1)
-        self.resized_rgb = np.rot90(self.resized_rgb, 1)
-        self.idx_map_h = np.rot90(self.idx_map_h, 1)
-        self.idx_map_v = np.rot90(self.idx_map_v, 1)
-        self.h, self.w = self.w, self.h
+        super().seams_removal_horizontal(num_remove)
 
     def seams_removal_vertical(self, num_remove):
         """ A wrapper for removing num_remove horizontal seams (just a recommendation)
@@ -274,13 +280,7 @@ class ColumnSeamImage(SeamImage):
         Guidelines & hints:
         In order to apply the removal, you might want to extend the seam mask to support 3 channels (rgb) using: 3d_mak = np.stack([1d_mask] * 3, axis=2), and then use it to create a resized version.
         """
-        self.w = self.w - 1
-        three_d_mask = np.stack([self.mask] * 3, axis=2)
-        self.resized_gs = self.resized_gs[self.mask].reshape(self.h, self.w)
-        self.resized_rgb = self.resized_rgb[three_d_mask].reshape(self.h, self.w, 3)
-        self.idx_map_v = self.idx_map_v[self.mask].reshape(self.h, self.w)
-        self.idx_map_h = self.idx_map_h[self.mask].reshape(self.h, self.w)
-        self.mask = self.mask[self.mask].reshape(self.h, self.w)
+        super().remove_seam()
 
 
 class VerticalSeamImage(SeamImage):
@@ -290,7 +290,6 @@ class VerticalSeamImage(SeamImage):
         super().__init__(*args, **kwargs)
         try:
             self.M = self.calc_M()
-            self.mask = np.ones_like(self.M, dtype=bool)
         except NotImplementedError as e:
             print(e)
 
@@ -367,19 +366,7 @@ class VerticalSeamImage(SeamImage):
             You may find np.rot90 function useful
 
         """
-        self.resized_gs = np.rot90(self.resized_gs, -1)
-        self.resized_rgb = np.rot90(self.resized_rgb, -1)
-        self.idx_map_h = np.rot90(self.idx_map_h, -1)
-        self.idx_map_v = np.rot90(self.idx_map_v, -1)
-        self.h, self.w = self.w, self.h
-
-        self.seams_removal(num_remove)
-        
-        self.resized_gs = np.rot90(self.resized_gs, 1)
-        self.resized_rgb = np.rot90(self.resized_rgb, 1)
-        self.idx_map_h = np.rot90(self.idx_map_h, 1)
-        self.idx_map_v = np.rot90(self.idx_map_v, 1)
-        self.h, self.w = self.w, self.h
+        super().seams_removal_horizontal(num_remove)
         
     def seams_removal_vertical(self, num_remove):
         """ A wrapper for removing num_remove horizontal seams (just a recommendation)
@@ -426,13 +413,7 @@ class VerticalSeamImage(SeamImage):
         Guidelines & hints:
         In order to apply the removal, you might want to extend the seam mask to support 3 channels (rgb) using: 3d_mak = np.stack([1d_mask] * 3, axis=2), and then use it to create a resized version.
         """
-        self.w = self.w - 1
-        three_d_mask = np.stack([self.mask] * 3, axis=2)
-        self.resized_gs = self.resized_gs[self.mask].reshape(self.h, self.w)
-        self.resized_rgb = self.resized_rgb[three_d_mask].reshape(self.h, self.w, 3)
-        self.idx_map_v = self.idx_map_v[self.mask].reshape(self.h, self.w)
-        self.idx_map_h = self.idx_map_h[self.mask].reshape(self.h, self.w)
-        self.mask = self.mask[self.mask].reshape(self.h, self.w)
+        super().remove_seam()
     
     def seams_addition(self, num_add: int):
         """ BONUS: adds num_add seamn to the image
