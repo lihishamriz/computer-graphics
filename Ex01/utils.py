@@ -62,6 +62,7 @@ class SeamImage:
             To prevent outlier values in the boundaries, we recommend to pad them with 0.5
         """
         gs = np.dot(np_img, self.gs_weights)
+        # Pad the boundaries with 0.5
         gs[[0, -1], :] = 0.5
         gs[:, [0, -1]] = 0.5
 
@@ -77,9 +78,11 @@ class SeamImage:
             In order to calculate a gradient of a pixel, only its neighborhood is required.
         """
         horizontal = np.abs(self.resized_gs - np.roll(self.resized_gs, -1, axis=0))
-        horizontal[-1, :] = horizontal[-2, :]
         vertical = np.abs(self.resized_gs - np.roll(self.resized_gs, -1, axis=1))
+        # Handle last row and last column
+        horizontal[-1, :] = horizontal[-2, :]
         vertical[:, -1] = vertical[:, -2]
+        
         gradient = np.sqrt(horizontal ** 2 + vertical ** 2)
         gradient[gradient > 1] = 1
 
@@ -153,8 +156,10 @@ class ColumnSeamImage(SeamImage):
         roll_right = np.roll(self.resized_gs, 1, axis=1)
         c_v = np.abs(roll_left - roll_right)
         M = self.E + c_v
+        # Handle first and last columns - no c_v
         M[:, 0] = self.E[:, 0]
         M[:, -1] = self.E[:, -1]
+        
         M = np.cumsum(M, axis=0)
 
         return M
@@ -191,18 +196,16 @@ class ColumnSeamImage(SeamImage):
             self.remove_seam()
             self.update_E(min_seam_idx)
             self.update_M(min_seam_idx)
-            self.idx_map_v = self.idx_map_v[self.mask].reshape(self.h, self.w)
-            self.idx_map_h = self.idx_map_h[self.mask].reshape(self.h, self.w)
-            self.mask = self.mask[self.mask].reshape(self.h, self.w)
         self.seams_rgb[~self.cumm_mask] = (1, 0, 0)
 
     def update_E(self, seam_idx):
         self.E = np.delete(self.E, seam_idx, axis=1)
-        if seam_idx > 0:
+        
+        if seam_idx > 0:  # No need to handle first column
             col = self.resized_gs[:, seam_idx - 1]
             horizontal = np.abs(col - np.roll(col, -1))
             horizontal[-1] = horizontal[-2]
-            if seam_idx == self.w:
+            if seam_idx == self.w:  # Handle last column
                 vertical = self.E[:, self.w - 1]
             else:
                 vertical = np.abs(col - self.resized_gs[:, seam_idx])
@@ -216,6 +219,7 @@ class ColumnSeamImage(SeamImage):
         roll_left = np.roll(self.resized_gs, -1, axis=1)
         roll_right = np.roll(self.resized_gs, 1, axis=1)
         c_v = np.abs(roll_left - roll_right)
+        # Handle first and last columns separately
         if seam_idx == 0:
             self.M[:, 0] = self.E[:, 0]
         elif seam_idx == self.w:
@@ -261,7 +265,6 @@ class ColumnSeamImage(SeamImage):
         """ Backtracks a seam for Column Seam Carving method
         """
         min_seam_idx = np.argmin(self.M[-1])
-        self.mask[:, :] = True
         self.mask[:, min_seam_idx] = False
         self.cumm_mask[self.idx_map_v[:, min_seam_idx], self.idx_map_h[:, min_seam_idx]] = False
 
@@ -275,6 +278,9 @@ class ColumnSeamImage(SeamImage):
         three_d_mask = np.stack([self.mask] * 3, axis=2)
         self.resized_gs = self.resized_gs[self.mask].reshape(self.h, self.w)
         self.resized_rgb = self.resized_rgb[three_d_mask].reshape(self.h, self.w, 3)
+        self.idx_map_v = self.idx_map_v[self.mask].reshape(self.h, self.w)
+        self.idx_map_h = self.idx_map_h[self.mask].reshape(self.h, self.w)
+        self.mask = self.mask[self.mask].reshape(self.h, self.w)
 
 
 class VerticalSeamImage(SeamImage):
@@ -311,8 +317,10 @@ class VerticalSeamImage(SeamImage):
             left = np.roll(M, 1, axis=1)[row - 1] + c_l[row]
             right = np.roll(M, -1, axis=1)[row - 1] + c_r[row]
             M[row] = self.E[row] + np.minimum(vertical, np.minimum(left, right))
+            # Handle first and last columns - remove c_v
             M[row, 0] = self.E[row, 0] + min(vertical[0], right[0]) - c_v[row, 0]
-            M[row, self.w - 1] = self.E[row, self.w - 1] + min(vertical[self.w - 1], left[self.w - 1]) - c_v[row, self.w - 1]
+            M[row, self.w - 1] = self.E[row, self.w - 1] + min(
+                vertical[self.w - 1], left[self.w - 1]) - c_v[row, self.w - 1]
         return M
 
     def seams_removal(self, num_remove: int):
@@ -347,9 +355,6 @@ class VerticalSeamImage(SeamImage):
             self.remove_seam()
             self.E = self.calc_gradient_magnitude()
             self.M = self.calc_M()
-            self.idx_map_v = self.idx_map_v[self.mask].reshape(self.h, self.w)
-            self.idx_map_h = self.idx_map_h[self.mask].reshape(self.h, self.w)
-            self.mask = self.mask[self.mask].reshape(self.h, self.w)
         self.seams_rgb[~self.cumm_mask] = (1, 0, 0)
 
     def seams_removal_horizontal(self, num_remove):
@@ -387,7 +392,6 @@ class VerticalSeamImage(SeamImage):
     def backtrack_seam(self):
         """ Backtracks a seam for Seam Carving as taught in lecture
         """
-        self.mask[:, :] = True
         min_seam_idx = np.argmin(self.M[-1])
         gs_roll_left = np.roll(self.resized_gs, -1, axis=1)
         gs_roll_right = np.roll(self.resized_gs, 1, axis=1)
@@ -400,13 +404,14 @@ class VerticalSeamImage(SeamImage):
         for row in range(self.h - 1, 0, -1):
             self.mask[row, min_seam_idx] = False
             self.cumm_mask[self.idx_map_v[row, min_seam_idx], self.idx_map_h[row, min_seam_idx]] = False
+            
             left = self.E[row] + (m_roll_right[row - 1] + c_l[row])
             right = self.E[row] + (m_roll_left[row - 1] + c_r[row])
-            
+            # Handle first and last columns - remove c_v
             if min_seam_idx == 0:
-                right -= c_v[row]
+                right = right - c_v[row]
             elif min_seam_idx == self.w - 1:
-                left -= c_v[row]
+                left = left - c_v[row]
                 
             if self.M[row, min_seam_idx] == left[min_seam_idx] and min_seam_idx > 0:
                 min_seam_idx = min_seam_idx - 1
@@ -425,6 +430,9 @@ class VerticalSeamImage(SeamImage):
         three_d_mask = np.stack([self.mask] * 3, axis=2)
         self.resized_gs = self.resized_gs[self.mask].reshape(self.h, self.w)
         self.resized_rgb = self.resized_rgb[three_d_mask].reshape(self.h, self.w, 3)
+        self.idx_map_v = self.idx_map_v[self.mask].reshape(self.h, self.w)
+        self.idx_map_h = self.idx_map_h[self.mask].reshape(self.h, self.w)
+        self.mask = self.mask[self.mask].reshape(self.h, self.w)
     
     def seams_addition(self, num_add: int):
         """ BONUS: adds num_add seamn to the image
@@ -473,6 +481,7 @@ class VerticalSeamImage(SeamImage):
         Guidelines & hints:
             np.ndarray is a rederence type. changing it here may affected outsde.
         """
+        raise NotImplementedError("TODO: Implement SeamImage.calc_bt_mat")
 
 def scale_to_shape(orig_shape: np.ndarray, scale_factors: list):
     """ Converts scale into shape
@@ -501,8 +510,10 @@ def resize_seam_carving(seam_img: SeamImage, shapes: np.ndarray):
     new_shape = shapes[1]
     vertical_num_remove = orig_shape[1] - new_shape[1]
     horizontal_num_remove = orig_shape[0] - new_shape[0]
-    seam_img.seams_removal_vertical(vertical_num_remove)
-    seam_img.seams_removal_horizontal(horizontal_num_remove)
+    if vertical_num_remove > 0:
+        seam_img.seams_removal_vertical(vertical_num_remove)
+    if horizontal_num_remove > 0:
+        seam_img.seams_removal_horizontal(horizontal_num_remove)
     
     return seam_img.resized_rgb
     
