@@ -362,7 +362,7 @@ class VerticalSeamImage(SeamImage):
 
         """
         super().seams_removal_horizontal(num_remove)
-        
+
     def seams_removal_vertical(self, num_remove):
         """ A wrapper for removing num_remove horizontal seams (just a recommendation)
 
@@ -504,7 +504,7 @@ def resize_seam_carving(seam_img: SeamImage, shapes: np.ndarray):
         seam_img.seams_removal_horizontal(horizontal_num_remove)
     
     return seam_img.resized_rgb
-    
+
 def bilinear(image, new_shape):
     """
     Resizes an image to new shape using bilinear interpolation method
