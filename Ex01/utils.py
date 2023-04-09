@@ -96,31 +96,27 @@ class SeamImage:
         pass
 
     def seams_removal_horizontal(self, num_remove):
-        self.resized_gs = np.rot90(self.resized_gs, -1)
-        self.resized_rgb = np.rot90(self.resized_rgb, -1)
-        self.idx_map_h = np.rot90(self.idx_map_h, -1)
-        self.idx_map_v = np.rot90(self.idx_map_v, -1)
-        self.h, self.w = self.w, self.h
-    
+        self.rotate_mats(-1)
         self.seams_removal(num_remove)
-    
-        self.resized_gs = np.rot90(self.resized_gs, 1)
-        self.resized_rgb = np.rot90(self.resized_rgb, 1)
-        self.idx_map_h = np.rot90(self.idx_map_h, 1)
-        self.idx_map_v = np.rot90(self.idx_map_v, 1)
-        self.h, self.w = self.w, self.h
+        self.rotate_mats(1)
 
     def seams_removal_vertical(self, num_remove):
-        pass
+        self.seams_removal(num_remove)
 
     def rotate_mats(self, clockwise):
-        pass
+        self.resized_gs = np.rot90(self.resized_gs, clockwise)
+        self.resized_rgb = np.rot90(self.resized_rgb, clockwise)
+        self.idx_map_h = np.rot90(self.idx_map_h, clockwise)
+        self.idx_map_v = np.rot90(self.idx_map_v, clockwise)
+        self.h, self.w = self.w, self.h
 
     def init_mats(self):
         pass
 
     def update_ref_mat(self):
-        pass
+        self.idx_map_v = self.idx_map_v[self.mask].reshape(self.h, self.w)
+        self.idx_map_h = self.idx_map_h[self.mask].reshape(self.h, self.w)
+        self.mask = self.mask[self.mask].reshape(self.h, self.w)
 
     def backtrack_seam(self):
         pass
@@ -130,9 +126,6 @@ class SeamImage:
         three_d_mask = np.stack([self.mask] * 3, axis=2)
         self.resized_gs = self.resized_gs[self.mask].reshape(self.h, self.w)
         self.resized_rgb = self.resized_rgb[three_d_mask].reshape(self.h, self.w, 3)
-        self.idx_map_v = self.idx_map_v[self.mask].reshape(self.h, self.w)
-        self.idx_map_h = self.idx_map_h[self.mask].reshape(self.h, self.w)
-        self.mask = self.mask[self.mask].reshape(self.h, self.w)
 
     def reinit(self):
         """ re-initiates instance
@@ -214,6 +207,7 @@ class ColumnSeamImage(SeamImage):
             self.remove_seam()
             self.update_E(min_seam_idx)
             self.update_M(min_seam_idx)
+            self.update_ref_mat()
         self.seams_rgb[~self.cumm_mask] = (1, 0, 0)
 
     def update_E(self, seam_idx):
@@ -265,7 +259,7 @@ class ColumnSeamImage(SeamImage):
         Parameters:
             num_remove (int): number of vertical seam to be removed
         """
-        self.seams_removal(num_remove)
+        super().seams_removal_vertical(num_remove)
 
     def backtrack_seam(self):
         """ Backtracks a seam for Column Seam Carving method
@@ -354,6 +348,7 @@ class VerticalSeamImage(SeamImage):
             self.remove_seam()
             self.E = self.calc_gradient_magnitude()
             self.M = self.calc_M()
+            self.update_ref_mat()
         self.seams_rgb[~self.cumm_mask] = (1, 0, 0)
 
     def seams_removal_horizontal(self, num_remove):
@@ -374,7 +369,7 @@ class VerticalSeamImage(SeamImage):
         Parameters:
             num_remove (int): umber of vertical seam to be removed
         """
-        self.seams_removal(num_remove)
+        super().seams_removal_vertical(num_remove)
     
     def backtrack_seam(self):
         """ Backtracks a seam for Seam Carving as taught in lecture
