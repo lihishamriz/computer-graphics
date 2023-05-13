@@ -98,7 +98,7 @@ class Ray:
         for obj in objects:
             ray = Ray(self.origin, self.direction)
             intersect = obj.intersect(ray)
-            if intersect and intersect[0] < min_distance:
+            if intersect and intersect[0] and intersect[0] < min_distance:
                 nearest_object = obj
                 min_distance = intersect[0]
         
@@ -121,9 +121,11 @@ class Plane(Object3D):
 
     def intersect(self, ray: Ray):
         v = self.point - ray.origin
-        t = (np.dot(v, self.normal) / np.dot(self.normal, ray.direction))
-        if t > 0:
-            return t, self
+        dot = np.dot(self.normal, ray.direction)
+        if dot:
+            t = (np.dot(v, self.normal) / dot)
+            if t > 0:
+                return t, self
         else:
             return None
 
@@ -181,18 +183,26 @@ class Cuboid(Object3D):
             |/     F  |/
            b+--------+/c
         """
-        A = B = C = D = E = F = None
-        self.face_list = [A,B,C,D,E,F]
+        g = [a[0], a[1], f[2]]
+        h = [b[0], b[1], e[2]]
+        # A = B = C = D = E = F = None
+        A = Rectangle(a, b, c, d)
+        B = Rectangle(d, c, e, f)
+        C = Rectangle(g, h, e, f)
+        D = Rectangle(a, b, h, g)
+        E = Rectangle(g, a, d, f)
+        F = Rectangle(h, b, c, e)
+        self.face_list = [A, B, C, D, E, F]
 
     def apply_materials_to_faces(self):
         for t in self.face_list:
-            t.set_material(self.ambient,self.diffuse,self.specular,self.shininess,self.reflection)
+            t.set_material(self.ambient, self.diffuse, self.specular, self.shininess, self.reflection)
 
     # Hint: Intersect returns both distance and nearest object.
     # Keep track of both
     def intersect(self, ray: Ray):
-        #TODO
-        pass
+        return ray.nearest_intersected_object(self.face_list)
+    
 
 class Sphere(Object3D):
     def __init__(self, center, radius: float):
@@ -235,7 +245,7 @@ class Scene:
             if obj == self.nearest_intersected_object:
                 return 1
             intersection = obj.intersect(ray)
-            if intersection and intersection[0] < np.linalg.norm(hit - self.camera):
+            if intersection and intersection[0] and intersection[0] < np.linalg.norm(hit - self.camera):
                 return 0
         return 1
 
