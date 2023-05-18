@@ -1,12 +1,14 @@
 from helper_classes import *
 import matplotlib.pyplot as plt
 
+
 def render_scene(camera, ambient, lights, objects, screen_size, max_depth):
     width, height = screen_size
     ratio = float(width) / height
     screen = (-1, 1 / ratio, 1, -1 / ratio)  # left, top, right, bottom
 
     image = np.zeros((height, width, 3))
+    scene = Scene(camera, ambient, lights, objects)
 
     for i, y in enumerate(np.linspace(screen[1], screen[3], height)):
         for j, x in enumerate(np.linspace(screen[0], screen[2], width)):
@@ -19,12 +21,10 @@ def render_scene(camera, ambient, lights, objects, screen_size, max_depth):
             color = np.zeros(3)
 
             # This is the main loop where each pixel color is computed.
-            scene = Scene(camera, ambient, lights, objects)
             obj, t = ray.nearest_intersected_object(objects)
             if obj:
-                scene.nearest_intersected_object = obj
                 hit = ray.origin + t * ray.direction
-                color = scene.get_color(ray, hit, 0, max_depth)
+                color = scene.get_color(obj, ray, hit, 1, max_depth)
             
             # We clip the values between 0 and 1 so all pixel values will make sense.
             image[i, j] = np.clip(color, 0, 1)
