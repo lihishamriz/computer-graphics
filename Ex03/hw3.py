@@ -8,7 +8,7 @@ def render_scene(camera, ambient, lights, objects, screen_size, max_depth):
     screen = (-1, 1 / ratio, 1, -1 / ratio)  # left, top, right, bottom
 
     image = np.zeros((height, width, 3))
-    scene = Scene(camera, ambient, lights, objects)
+    scene = Scene(ambient, lights, objects)
 
     for i, y in enumerate(np.linspace(screen[1], screen[3], height)):
         for j, x in enumerate(np.linspace(screen[0], screen[2], width)):
@@ -21,10 +21,9 @@ def render_scene(camera, ambient, lights, objects, screen_size, max_depth):
             color = np.zeros(3)
 
             # This is the main loop where each pixel color is computed.
-            obj, t = ray.nearest_intersected_object(objects)
-            if obj:
-                hit = ray.origin + t * ray.direction
-                color = scene.get_color(obj, ray, hit, 1, max_depth)
+            hit, nearest_obj = scene.find_intersection(ray)
+            if nearest_obj:
+                color = scene.get_color(nearest_obj, ray, hit, 1, max_depth)
             
             # We clip the values between 0 and 1 so all pixel values will make sense.
             image[i, j] = np.clip(color, 0, 1)

@@ -32,7 +32,7 @@ class DirectionalLight(LightSource):
 
     # This function returns the distance from a point to the light source
     def get_distance_from_light(self, intersection):
-        pass
+        return np.inf
 
     # This function returns the light intensity at a point
     def get_intensity(self, intersection):
@@ -98,10 +98,10 @@ class Ray:
         for obj in objects:
             intersect = obj.intersect(self)
             if intersect and intersect[0] and intersect[0] < min_distance:
-                nearest_object = obj
+                nearest_object = intersect[1]
                 min_distance = intersect[0]
         
-        return nearest_object, min_distance
+        return min_distance, nearest_object
 
 
 class Object3D:
@@ -185,8 +185,8 @@ class Cuboid(Object3D):
             |/     F  |/
            b+--------+/c
         """
-        g = [a[0], a[1], f[2]]
-        h = [b[0], b[1], e[2]]
+        g = np.subtract(f, (np.subtract(d, a)))
+        h = np.subtract(e, (np.subtract(c, b)))
         # A = B = C = D = E = F = None
         A = Rectangle(a, b, c, d)
         B = Rectangle(d, c, e, f)
@@ -211,13 +211,24 @@ class Sphere(Object3D):
         self.center = center
         self.radius = radius
 
+    def compute_normal(self, hit):
+        return normalize(hit - self.center)
+
     def intersect(self, ray: Ray):
-        #TODO
-        pass
+        center_to_origin = ray.origin - self.center
+        b = np.dot(ray.direction, center_to_origin)
+        delta = b ** 2 - (np.linalg.norm(center_to_origin) ** 2 - self.radius ** 2)
+        if delta >= 0:
+            t1 = -b + (delta ** 0.5)
+            t2 = -b - (delta ** 0.5)
+            t = np.minimum(t1, t2)
+            if t > 0:
+                return t, self
+        return None
+    
     
 class Scene:
-    def __init__(self, camera, ambient, lights, objects):
-        self.camera = camera
+    def __init__(self, ambient, lights, objects):
         self.ambient = ambient
         self.lights = lights
         self.objects = objects
@@ -225,48 +236,55 @@ class Scene:
     def calc_ambient_color(self, obj):
         return self.ambient * obj.ambient
 
-    def calc_diffuse_color(self, obj, hit, light):
+    @staticmethod
+    def calc_diffuse_color(obj, hit, light):
         K_D = obj.diffuse
         I_L = light.get_intensity(hit)
-        N = obj.compute_normal(obj)
+        N = obj.compute_normal(hit)
         L = normalize(light.get_light_ray(hit).direction)
         return K_D * I_L * np.dot(N, L)
 
-    def calc_specular_color(self, obj, ray, hit, light):
+    @staticmethod
+    def calc_specular_color(obj, ray, hit, light):
         K_S = obj.specular
         I_L = light.get_intensity(hit)
         V = normalize(ray.origin - hit)
         L = normalize(light.get_light_ray(hit).direction)
         R = reflected(L, obj.compute_normal(hit))
         return K_S * I_L * (np.dot(V, R) ** (obj.shininess / 10))
-
-    def calc_shadow_factor(self, obj, hit, light):
-        ray = Ray(hit, light.get_light_ray(hit).direction)
-        for curr_obj in self.objects:
-            if curr_obj == obj:
-                return 1
-            intersection = curr_obj.intersect(ray)
-            if intersection and intersection[0] and intersection[0] < np.linalg.norm(hit - self.camera):
-                return 0
-        return 1
     
-    def construct_reflective_ray(self, obj, ray, hit):
+    def calc_shadow_factor(self, hit, light):
+        light_ray = light.get_light_ray(hit)
+        intersection = light_ray.nearest_intersected_object(self.objects)
+        if intersection and intersection[0] and intersection[0] < light.get_distance_from_light(hit):
+            return 0
+        return 1
+
+    @staticmethod
+    def construct_reflective_ray(obj, ray, hit):
         reflected_ray = reflected(ray.direction, obj.compute_normal(hit))
         new_ray = Ray(hit, reflected_ray)
         return new_ray
+    
+    def find_intersection(self, ray):
+        t, nearest_obj = ray.nearest_intersected_object(self.objects)
+        if nearest_obj:
+            hit = ray.origin + t * ray.direction
+            return hit, nearest_obj
+        return np.inf, None
 
     def get_color(self, obj, ray, hit, level, max_level):
+        normal = obj.compute_normal(hit)
+        hit += 0.01 * normal
         color = self.calc_ambient_color(obj)
         for light in self.lights:
-            s = self.calc_shadow_factor(obj, hit, light)
-            color += (self.calc_diffuse_color(obj, hit, light) +
-                      self.calc_specular_color(obj, ray, hit, light)) * s
+            if self.calc_shadow_factor(hit, light):
+                color = color + self.calc_diffuse_color(obj, hit, light) + self.calc_specular_color(obj, ray, hit, light)
         level += 1
         if level > max_level:
             return color
         r_ray = self.construct_reflective_ray(obj, ray, hit)
-        t, nearest_obj = r_ray.nearest_intersected_object(self.objects)
+        r_hit, nearest_obj = self.find_intersection(r_ray)
         if nearest_obj:
-            r_hit = r_ray.origin + t * r_ray.direction
-            color += nearest_obj.reflection * self.get_color(nearest_obj, r_ray, r_hit, level, max_level)
+            color = color + nearest_obj.reflection * self.get_color(nearest_obj, r_ray, r_hit, level, max_level)
         return color
