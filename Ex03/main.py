@@ -111,25 +111,49 @@ from hw3 import *
 
 
 # Scene 5
-background = Plane([0,0,1], [0,0,-1])
-background.set_material([1, 1, 1], [1, 1, 1], [1, 1, 1], 1000, 0.5)
+# background = Plane([0,0,1], [0,0,-1])
+# background.set_material([1, 1, 1], [1, 1, 1], [1, 1, 1], 1000, 0.5)
+#
+#
+# objects = [background]
+#
+# light_a = SpotLight(intensity= np.array([0, 0, 1]),position=np.array([0.5,0.5,0]), direction=([0,0,1]),
+#                     kc=0.1,kl=0.1,kq=0.1)
+# light_b = SpotLight(intensity= np.array([0, 1, 0]),position=np.array([-0.5,0.5,0]), direction=([0,0,1]),
+#                     kc=0.1,kl=0.1,kq=0.1)
+# light_c = SpotLight(intensity= np.array([1, 0, 0]),position=np.array([0,-0.5,0]), direction=([0,0,1]),
+#                     kc=0.1,kl=0.1,kq=0.1)
+#
+# lights = [light_a,light_b,light_c]
+#
+# ambient = np.array([0,0,0])
+#
+# camera = np.array([0,0,1])
+#
+# im = render_scene(camera, ambient, lights, objects, (256,256), 3)
+# plt.imshow(im)
+# plt.imsave('scene5.png', im)
+
+# Bonus
+from hw3 import *
 
 
-objects = [background]
+plane1 = Plane([0,0,1], [0,0,-3])
+plane1.set_material([0, 1, 0], [0, 1, 0], [0, 0, 0], 1000, 0)
 
-light_a = SpotLight(intensity= np.array([0, 0, 1]),position=np.array([0.5,0.5,0]), direction=([0,0,1]),
-                    kc=0.1,kl=0.1,kq=0.1)
-light_b = SpotLight(intensity= np.array([0, 1, 0]),position=np.array([-0.5,0.5,0]), direction=([0,0,1]),
-                    kc=0.1,kl=0.1,kq=0.1)
-light_c = SpotLight(intensity= np.array([1, 0, 0]),position=np.array([0,-0.5,0]), direction=([0,0,1]),
-                    kc=0.1,kl=0.1,kq=0.1)
+sphere_a = Sphere([0, 0, -1],1)
+sphere_a.set_material([1, 0, 0], [1, 0, 0], [0.3, 0.3, 0.3], 100, 0, 0.5, 1.458)
 
-lights = [light_a,light_b,light_c]
+objects = [plane1,sphere_a]
 
-ambient = np.array([0,0,0])
+light = PointLight(intensity= np.array([1, 1, 1]),position=np.array([1,1.5,1]),kc=0.1,kl=0.1,kq=0.1)
+
+lights = [light]
+
+ambient = np.array([0.1,0.2,0.3])
 
 camera = np.array([0,0,1])
 
 im = render_scene(camera, ambient, lights, objects, (256,256), 3)
 plt.imshow(im)
-plt.imsave('scene5.png', im)
+plt.imsave('scene4.png', im)
