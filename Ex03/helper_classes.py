@@ -1,5 +1,7 @@
 import numpy as np
 
+EPSILON = 1e-4
+
 
 # This function gets a vector and returns its normalized form.
 def normalize(vector):
@@ -106,12 +108,14 @@ class Ray:
 
 
 class Object3D:
-    def set_material(self, ambient, diffuse, specular, shininess, reflection):
+    def set_material(self, ambient, diffuse, specular, shininess, reflection, refraction=None, refraction_index=None):
         self.ambient = ambient
         self.diffuse = diffuse
         self.specular = specular
         self.shininess = shininess
         self.reflection = reflection
+        self.refraction = refraction
+        self.refraction_index = refraction_index
 
 
 class Plane(Object3D):
@@ -120,7 +124,7 @@ class Plane(Object3D):
         self.point = np.array(point)
     
     def compute_normal(self, hit=None):
-        return self.normal
+        return normalize(self.normal)
     
     def intersect(self, ray: Ray):
         v = self.point - ray.origin
@@ -223,9 +227,10 @@ class Sphere(Object3D):
         if delta >= 0:
             t1 = (-b + (delta ** 0.5)) / 2
             t2 = (-b - (delta ** 0.5)) / 2
-            t = np.minimum(t1, t2)
-            if t > 0:
-                return t, self
+            if t1 > 0 and t2 > 0:
+                return min(t1, t2), self
+            elif t1 > 0 or t2 > 0:
+                return max(t1, t2), self
         return None
 
 
@@ -267,7 +272,22 @@ class Scene:
         reflected_direction = reflected(ray.direction, obj.compute_normal(hit))
         reflected_ray = Ray(hit, reflected_direction)
         return reflected_ray
-
+    
+    @staticmethod
+    def construct_refractive_ray(obj, ray, hit, is_from_air):
+        N = obj.compute_normal(hit)
+        L = ray.direction
+        n1 = 1.000293
+        n2 = obj.refraction_index
+        r = n1 / n2
+        if not is_from_air:
+            N = -N
+            r = 1 / r
+        c = np.dot(-N, L)
+        refractive_direction = r * L + (r * c - np.sqrt(1 - (r ** 2) * (1 - c ** 2))) * N
+        refractive_ray = Ray(hit, normalize(np.array(refractive_direction)))
+        return refractive_ray
+    
     def find_intersection(self, ray):
         t, nearest_obj = ray.nearest_intersected_object(self.objects)
         if nearest_obj:
@@ -277,7 +297,7 @@ class Scene:
     
     def get_color(self, obj, ray, hit, level, max_level):
         normal = obj.compute_normal(hit)
-        hit_up = hit + 0.001 * normal
+        hit_up = hit + EPSILON * normal
         color = self.calc_ambient_color(obj)
         for light in self.lights:
             if self.calc_shadow_factor(hit_up, light):
@@ -291,5 +311,16 @@ class Scene:
         if nearest_obj:
             color = color + obj.reflection * self.get_color(nearest_obj, r_ray, r_hit, level + 1, max_level)
         
+        if obj.refraction and obj.refraction_index:
+            hit_down = hit - EPSILON * normal
+            t_in_ray = self.construct_refractive_ray(obj, ray, hit_down, True)
+            t_in_hit, nearest_obj_in = self.find_intersection(t_in_ray)
+            if nearest_obj_in:
+                t_in_hit_up = t_in_hit + EPSILON * nearest_obj_in.compute_normal(t_in_hit)
+                t_out_ray = self.construct_refractive_ray(nearest_obj_in, t_in_ray, t_in_hit_up, False)
+                t_out_hit, nearest_obj_out = self.find_intersection(t_out_ray)
+                if nearest_obj_out:
+                    t_out_hit_up = t_out_hit + EPSILON * nearest_obj_out.compute_normal(t_out_hit)
+                    color = color + obj.refraction * self.get_color(nearest_obj_out, t_out_ray, t_out_hit_up, level + 1, max_level)
+        
         return color
-    

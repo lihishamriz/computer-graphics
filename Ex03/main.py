@@ -135,25 +135,33 @@ from hw3 import *
 # plt.imsave('scene5.png', im)
 
 # Bonus
-from hw3 import *
+# from hw3 import *
+#
+#
+# plane1 = Plane([0,0,1], [0,0,-3])
+# plane1.set_material([0, 1, 0], [0, 1, 0], [0, 0, 0], 1000, 0)
+#
+# sphere_a = Sphere([0, 0, -1],1)
+# sphere_a.set_material([1, 0, 0], [1, 0, 0], [0.3, 0.3, 0.3], 100, 0, 0.5, 1.458)
+#
+# objects = [plane1,sphere_a]
+#
+# light = PointLight(intensity= np.array([1, 1, 1]),position=np.array([1,1.5,1]),kc=0.1,kl=0.1,kq=0.1)
+#
+# lights = [light]
+#
+# ambient = np.array([0.1,0.2,0.3])
+#
+# camera = np.array([0,0,1])
+#
+# im = render_scene(camera, ambient, lights, objects, (256,256), 3)
+# plt.imshow(im)
+# plt.imsave('scene4.png', im)
 
 
-plane1 = Plane([0,0,1], [0,0,-3])
-plane1.set_material([0, 1, 0], [0, 1, 0], [0, 0, 0], 1000, 0)
-
-sphere_a = Sphere([0, 0, -1],1)
-sphere_a.set_material([1, 0, 0], [1, 0, 0], [0.3, 0.3, 0.3], 100, 0, 0.5, 1.458)
-
-objects = [plane1,sphere_a]
-
-light = PointLight(intensity= np.array([1, 1, 1]),position=np.array([1,1.5,1]),kc=0.1,kl=0.1,kq=0.1)
-
-lights = [light]
-
-ambient = np.array([0.1,0.2,0.3])
-
-camera = np.array([0,0,1])
+# Scene 6
+camera, ambient, lights, objects = your_own_scene()
 
 im = render_scene(camera, ambient, lights, objects, (256,256), 3)
 plt.imshow(im)
-plt.imsave('scene4.png', im)
+plt.imsave('scene6.png', im)
