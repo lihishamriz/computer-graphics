@@ -32,29 +32,36 @@ def render_scene(camera, ambient, lights, objects, screen_size, max_depth):
 
 
 # Write your own objects and lights
-# TODO
 def your_own_scene():
     camera = np.array([0, 0, 1])
     ambient = np.array([0.1, 0.1, 0.1])
     
-    s_light = SpotLight(intensity=np.array([0.6, 0.6, 0.6]), position=np.array([0, 5, -6]), direction=([0, 1, 0]),
+    s_light = SpotLight(intensity=np.array([1, 1, 1]), position=np.array([0, 6, -10]), direction=([0, -1, 1]),
                         kc=0.1, kl=0.1, kq=0.1)
     d_light = DirectionalLight(intensity=np.array([1, 1, 1]), direction=np.array([1, 1, 1]))
     lights = [s_light, d_light]
-
-    background = Plane([0, 0, 1], [0, 0, -10])
-    background.set_material([0.5, 1, 1], [0.5, 1, 1], [0, 0, 0], 100, 0)
+    
+    background = Plane([0, 0, 1], [0, 0, -30])
+    background.set_material([0.2, 1, 1], [0.2, 1, 1], [0, 0, 0], 100, 0)
+    
     plane = Plane([0, 1, 0], [0, -1, 0])
-    plane.set_material([144 / 256, 238 / 256, 144 / 256], [144 / 256, 238 / 256, 144 / 256], [0, 0, 0], 1000, 0.5)
+    plane.set_material([0.5, 0.9, 0.5], [0.5, 0.9, 0.5], [0, 0, 0], 1000, 0.5)
     
     sphere_a = Sphere([0, 0, -2], 1)
     sphere_a.set_material([0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [1, 1, 1], 1000, 0, 0.5, 1)
+    
     sphere_b = Sphere([-1, -0.5, -8], 0.5)
     sphere_b.set_material([1, 0, 1], [1, 0, 1], [0, 0, 0], 1000, 0)
+    
     sphere_c = Sphere([1, -0.5, -8], 0.5)
     sphere_c.set_material([1, 0, 1], [1, 0, 1], [0, 0, 0], 1000, 0)
+    
     sphere_d = Sphere([0, -0.7, -4], 0.3)
     sphere_d.set_material([1, 0, 1], [1, 0, 1], [0, 0, 0], 1000, 0)
-    objects = [background, plane, sphere_a, sphere_b, sphere_c, sphere_d]
-
+    
+    rectangle = Rectangle([-2.5, 10, -12], [-2.5, 6, -15], [2.5, 6, -15], [2.5, 10, -12])
+    rectangle.set_material([0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0, 0, 0], 100, 0.8)
+    
+    objects = [background, plane, sphere_a, sphere_b, sphere_c, sphere_d, rectangle]
+    
     return camera, ambient, lights, objects

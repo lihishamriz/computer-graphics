@@ -11,7 +11,6 @@ def normalize(vector):
 # This function gets a vector and the normal of the surface it hit
 # This function returns the vector that reflects from the surface
 def reflected(vector, axis):
-    # v = np.array([0, 0, 0])
     v = vector - 2 * np.dot(vector, axis) * axis
     return v
 
@@ -94,7 +93,6 @@ class Ray:
     # The function is getting the collection of objects in the scene and looks for the one with minimum distance.
     # The function should return the nearest object and its distance (in two different arguments)
     def nearest_intersected_object(self, objects):
-        intersections = None
         nearest_object = None
         min_distance = np.inf
         
@@ -123,7 +121,7 @@ class Plane(Object3D):
         self.normal = np.array(normal)
         self.point = np.array(point)
     
-    def compute_normal(self, hit=None):
+    def compute_normal(self, _=None):
         return normalize(self.normal)
     
     def intersect(self, ray: Ray):
@@ -155,7 +153,7 @@ class Rectangle(Object3D):
         self.abcd = [np.asarray(v) for v in [a, b, c, d]]
         self.normal = self.compute_normal()
     
-    def compute_normal(self, hit=None):
+    def compute_normal(self, _=None):
         v1 = self.abcd[1] - self.abcd[0]
         v2 = self.abcd[3] - self.abcd[0]
         n = normalize(np.cross(v1, v2))
@@ -192,7 +190,6 @@ class Cuboid(Object3D):
         """
         g = np.add(a, (np.subtract(f, d)))
         h = np.add(b, (np.subtract(e, c)))
-        # A = B = C = D = E = F = None
         A = Rectangle(a, b, c, d)
         B = Rectangle(d, c, e, f)
         C = Rectangle(f, e, h, g)
@@ -277,9 +274,7 @@ class Scene:
     def construct_refractive_ray(obj, ray, hit, is_from_air):
         N = obj.compute_normal(hit)
         L = ray.direction
-        n1 = 1.000293
-        n2 = obj.refraction_index
-        r = n1 / n2
+        r = 1 / obj.refraction_index
         if not is_from_air:
             N = -N
             r = 1 / r
@@ -321,6 +316,7 @@ class Scene:
                 t_out_hit, nearest_obj_out = self.find_intersection(t_out_ray)
                 if nearest_obj_out:
                     t_out_hit_up = t_out_hit + EPSILON * nearest_obj_out.compute_normal(t_out_hit)
-                    color = color + obj.refraction * self.get_color(nearest_obj_out, t_out_ray, t_out_hit_up, level + 1, max_level)
+                    color = color + obj.refraction * self.get_color(nearest_obj_out, t_out_ray, t_out_hit_up, level + 1,
+                                                                    max_level)
         
         return color
