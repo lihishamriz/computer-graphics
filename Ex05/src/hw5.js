@@ -114,7 +114,6 @@ leftNetMesh.applyMatrix4(leftNetMatrix);
 scene.add(leftNetMesh);
 
 
-// Create right net shape.
 const rightNetShape = new THREE.Shape();
 rightNetShape.lineTo(0, H_POST);
 rightNetShape.lineTo(H_POST * Math.tan(THETA_POSTS), 0);
@@ -133,6 +132,23 @@ rightNetMesh.applyMatrix4(rightNetMatrix);
 
 scene.add(rightNetMesh);
 
+const BALL_RADIUS = H_POST / 16;
+
+const BALL_POSITION = {
+    x: 0,                              // Centered between the posts
+    y: -H_POST / 2 + BALL_RADIUS,      // Halfway up the goal's height, accounting for the radius of the ball
+    z: (H_POST * Math.tan(THETA_POSTS))    // Positioned in front of the goal by a distance of 1 unit (or your choice), accounting for the radius of the ball
+};
+
+const ballGeometry = new THREE.SphereGeometry(BALL_RADIUS, 32, 32);  // Adjust the second and third arguments for smoother sphere
+
+const ballMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });  // White ball, adjust color as needed
+
+const ball = new THREE.Mesh(ballGeometry, ballMaterial);
+
+ball.position.set(BALL_POSITION.x, BALL_POSITION.y, BALL_POSITION.z);
+
+scene.add(ball);
 
 
 
