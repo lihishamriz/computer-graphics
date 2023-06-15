@@ -84,11 +84,6 @@ scene.add(backRightTorus);
 
 
 
-
-
-
-
-// Create net geometry
 const netWidth = D_POSTS;
 const netHeight = H_POST / Math.cos(THETA_POSTS);
 const netGeometry = new THREE.PlaneGeometry(netWidth, netHeight);
@@ -98,12 +93,51 @@ const netMaterial = new THREE.MeshBasicMaterial({ color: 0xCCCCCC, side: THREE.D
 const net = new THREE.Mesh(netGeometry, netMaterial);
 makeRotationX(net, THETA_POSTS);
 makeTranslation(net, 0, 0, -(H_POST * Math.tan(THETA_POSTS)) / 2);
-
-
-
-
-// Add net to the scene
 scene.add(net);
+
+const leftNetShape = new THREE.Shape();
+leftNetShape.lineTo(0, H_POST);
+leftNetShape.lineTo(-(H_POST * Math.tan(THETA_POSTS)), 0);
+leftNetShape.lineTo(0,0);
+
+const leftNetGeometry = new THREE.ShapeGeometry(leftNetShape);
+
+const leftNetMaterial = new THREE.MeshBasicMaterial({ color: 0xCCCCCC, side: THREE.DoubleSide });
+
+const leftNetMesh = new THREE.Mesh(leftNetGeometry, leftNetMaterial);
+
+const rotateMinus90YMatrix = new THREE.Matrix4().makeRotationY(degrees_to_radians(-90));
+const translationLeftNet = new THREE.Matrix4().makeTranslation(-D_POSTS / 2, -H_POST / 2, 0);
+const leftNetMatrix = translationLeftNet.multiply(rotateMinus90YMatrix);
+leftNetMesh.applyMatrix4(leftNetMatrix);
+
+scene.add(leftNetMesh);
+
+
+// Create right net shape.
+const rightNetShape = new THREE.Shape();
+rightNetShape.lineTo(0, H_POST);
+rightNetShape.lineTo(H_POST * Math.tan(THETA_POSTS), 0);
+rightNetShape.lineTo(0,0);
+
+const rightNetGeometry = new THREE.ShapeGeometry(rightNetShape);
+
+const rightNetMaterial = new THREE.MeshBasicMaterial({ color: 0xCCCCCC, side: THREE.DoubleSide });
+
+const rightNetMesh = new THREE.Mesh(rightNetGeometry, rightNetMaterial);
+
+const rotate90YMatrix = new THREE.Matrix4().makeRotationY(degrees_to_radians(90));
+const translationRightNet = new THREE.Matrix4().makeTranslation(D_POSTS / 2, -H_POST / 2, 0);
+const rightNetMatrix = translationRightNet.multiply(rotate90YMatrix);
+rightNetMesh.applyMatrix4(rightNetMatrix);
+
+scene.add(rightNetMesh);
+
+
+
+
+
+
 
 
 
