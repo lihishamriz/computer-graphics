@@ -82,6 +82,38 @@ makeRotationX(backRightTorus, degrees_to_radians(90))
 makeTranslation(backRightTorus, D_POSTS / 2, -H_POST / 2, -(H_POST * Math.tan(THETA_POSTS)))
 scene.add(backRightTorus);
 
+
+
+
+
+
+
+// Create net geometry
+const netWidth = D_POSTS;
+const netHeight = H_POST / Math.cos(THETA_POSTS);
+const netGeometry = new THREE.PlaneGeometry(netWidth, netHeight);
+
+const netMaterial = new THREE.MeshBasicMaterial({ color: 0xCCCCCC, side: THREE.DoubleSide });  // Light gray, visible from both sides
+
+const net = new THREE.Mesh(netGeometry, netMaterial);
+makeRotationX(net, THETA_POSTS);
+makeTranslation(net, 0, 0, -(H_POST * Math.tan(THETA_POSTS)) / 2);
+
+
+
+
+// Add net to the scene
+scene.add(net);
+
+
+
+
+
+
+
+
+
+
 // This defines the initial distance of the camera
 const cameraTranslate = new THREE.Matrix4();
 cameraTranslate.makeTranslation(0,0,5);
@@ -147,3 +179,4 @@ function makeRotationZ(obj, theta) {
 	rotationMatrix.makeRotationZ(theta)
 	obj.applyMatrix4(rotationMatrix);
 }
+
