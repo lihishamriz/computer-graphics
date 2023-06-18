@@ -1,17 +1,16 @@
 import {OrbitControls} from './OrbitControls.js'
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize( window.innerWidth, window.innerHeight );
-document.body.appendChild( renderer.domElement );
-scene.background = new THREE.Color( 'ForestGreen' );
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+scene.background = new THREE.Color('ForestGreen');
 
-function degrees_to_radians(degrees)
-{
-  var pi = Math.PI;
-  return degrees * (pi/180);
+function degrees_to_radians(degrees) {
+	var pi = Math.PI;
+	return degrees * (pi / 180);
 }
 
 const H_POST = 2
@@ -54,7 +53,7 @@ makeTranslation(backRightTorus, D_POSTS / 2, -H_POST / 2, -(H_POST * Math.tan(TH
 goal.add(frontLeftPost, frontRightPost, backLeftPost, backRightPost, crossbar, frontLeftTorus, frontRightTorus, backLeftTorus, backRightTorus);
 
 const backNetGeometry = new THREE.PlaneGeometry(D_POSTS, H_POST / Math.cos(THETA_POSTS));
-const backNetMaterial = new THREE.MeshBasicMaterial({ color: 0xCCCCCC, side: THREE.DoubleSide });
+const backNetMaterial = new THREE.MeshBasicMaterial({color: 0xCCCCCC, side: THREE.DoubleSide});
 const backNet = new THREE.Mesh(backNetGeometry, backNetMaterial);
 makeRotationX(backNet, THETA_POSTS);
 makeTranslation(backNet, 0, 0, -(H_POST * Math.tan(THETA_POSTS)) / 2);
@@ -62,19 +61,19 @@ makeTranslation(backNet, 0, 0, -(H_POST * Math.tan(THETA_POSTS)) / 2);
 const leftNetShape = new THREE.Shape();
 leftNetShape.lineTo(0, H_POST);
 leftNetShape.lineTo(-(H_POST * Math.tan(THETA_POSTS)), 0);
-leftNetShape.lineTo(0,0);
+leftNetShape.lineTo(0, 0);
 const leftNetGeometry = new THREE.ShapeGeometry(leftNetShape);
-const leftNetMaterial = new THREE.MeshBasicMaterial({ color: 0xCCCCCC, side: THREE.DoubleSide });
+const leftNetMaterial = new THREE.MeshBasicMaterial({color: 0xCCCCCC, side: THREE.DoubleSide});
 const leftNet = new THREE.Mesh(leftNetGeometry, leftNetMaterial);
 makeRotationY(leftNet, degrees_to_radians(-90));
-makeTranslation(leftNet,-D_POSTS / 2, -H_POST / 2, 0);
+makeTranslation(leftNet, -D_POSTS / 2, -H_POST / 2, 0);
 
 const rightNetShape = new THREE.Shape();
 rightNetShape.lineTo(0, H_POST);
 rightNetShape.lineTo(H_POST * Math.tan(THETA_POSTS), 0);
-rightNetShape.lineTo(0,0);
+rightNetShape.lineTo(0, 0);
 const rightNetGeometry = new THREE.ShapeGeometry(rightNetShape);
-const rightNetMaterial = new THREE.MeshBasicMaterial({ color: 0xCCCCCC, side: THREE.DoubleSide });
+const rightNetMaterial = new THREE.MeshBasicMaterial({color: 0xCCCCCC, side: THREE.DoubleSide});
 const rightNet = new THREE.Mesh(rightNetGeometry, rightNetMaterial);
 makeRotationY(rightNet, degrees_to_radians(90));
 makeTranslation(rightNet, D_POSTS / 2, -H_POST / 2, 0)
@@ -83,23 +82,22 @@ goal.add(frontLeftPost, frontRightPost, backLeftPost, backRightPost, crossbar, f
 	backLeftTorus, backRightTorus, backNet, leftNet, rightNet);
 scene.add(goal);
 
-const ballRadius  = H_POST / 16;
+const ballRadius = H_POST / 16;
 const ballGeometry = new THREE.SphereGeometry(ballRadius, 32, 32);
-const ballMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+const ballMaterial = new THREE.MeshBasicMaterial({color: 0x000000});
 const ball = new THREE.Mesh(ballGeometry, ballMaterial);
 makeTranslation(ball, 0, -H_POST / 2 + ballRadius, H_POST * Math.tan(THETA_POSTS))
 scene.add(ball);
 
 
-
 // This defines the initial distance of the camera
 const cameraTranslate = new THREE.Matrix4();
-cameraTranslate.makeTranslation(0,0,5);
+cameraTranslate.makeTranslation(0, 0, 5);
 camera.applyMatrix4(cameraTranslate)
 
-renderer.render( scene, camera );
+renderer.render(scene, camera);
 
-const controls = new OrbitControls( camera, renderer.domElement );
+const controls = new OrbitControls(camera, renderer.domElement);
 
 let isOrbitEnabled = true;
 let isWireframeEnabled = false;
@@ -149,14 +147,14 @@ const toggleOrbit = (e) => {
 	}
 }
 
-document.addEventListener('keydown',toggleOrbit)
+document.addEventListener('keydown', toggleOrbit)
 
 //controls.update() must be called after any manual changes to the camera's transform
 controls.update();
 
 function animate() {
 
-	requestAnimationFrame( animate );
+	requestAnimationFrame(animate);
 
 	controls.enabled = isOrbitEnabled;
 
@@ -170,9 +168,10 @@ function animate() {
 
 	controls.update();
 
-	renderer.render( scene, camera );
+	renderer.render(scene, camera);
 
 }
+
 animate()
 
 function makeTranslation(obj, x, y, z) {
@@ -207,16 +206,16 @@ function makeScale(obj, scaleFactor) {
 
 function createPost(radiusTop, radiusBottom, height) {
 	const postGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height);
-	const postMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF} );
+	const postMaterial = new THREE.MeshBasicMaterial({color: 0xFFFFFF});
 
-	return new THREE.Mesh( postGeometry, postMaterial );
+	return new THREE.Mesh(postGeometry, postMaterial);
 }
 
 function createTorus() {
 	const torusGeometry = new THREE.TorusGeometry(0.1, 0.05, 2, 100);
-	const torusMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF} );
+	const torusMaterial = new THREE.MeshBasicMaterial({color: 0xFFFFFF});
 
-	const torus = new THREE.Mesh( torusGeometry, torusMaterial );
+	const torus = new THREE.Mesh(torusGeometry, torusMaterial);
 	makeRotationX(torus, degrees_to_radians(90));
 
 	return torus;
