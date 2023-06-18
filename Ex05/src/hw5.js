@@ -19,148 +19,76 @@ const W_POST = 0.07
 const D_POSTS = 3 * H_POST
 const THETA_POSTS = degrees_to_radians(40)
 
-// Add here the rendering of your goal
-const frontLeftPostGeometry = new THREE.CylinderGeometry(W_POST, W_POST, H_POST);
-const frontLeftPostMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF} );
-const frontLeftPost = new THREE.Mesh( frontLeftPostGeometry, frontLeftPostMaterial );
+const goal = new THREE.Group();
+
+const frontLeftPost = createPost(W_POST, W_POST, H_POST)
 makeTranslation(frontLeftPost, -D_POSTS / 2, 0, 0);
-scene.add(frontLeftPost);
 
-const frontRightPostGeometry = new THREE.CylinderGeometry(W_POST, W_POST, H_POST);
-const frontRightPostMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF} );
-const frontRightPost = new THREE.Mesh( frontRightPostGeometry, frontRightPostMaterial );
+const frontRightPost = createPost(W_POST, W_POST, H_POST)
 makeTranslation(frontRightPost, D_POSTS / 2, 0, 0);
-scene.add(frontRightPost)
 
-const crossbarGeometry = new THREE.CylinderGeometry(W_POST, W_POST, D_POSTS + W_POST);
-const crossbarMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF} );
-const crossbar = new THREE.Mesh( crossbarGeometry, crossbarMaterial );
-makeRotationZ(crossbar, degrees_to_radians(90))
-makeTranslation(crossbar, 0, H_POST / 2, 0)
-scene.add(crossbar)
-
-const backLeftPostGeometry = new THREE.CylinderGeometry(W_POST, W_POST, H_POST / Math.cos(THETA_POSTS));
-console.log(Math.cos(THETA_POSTS))
-const backLeftPostMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF} );
-const backLeftPost = new THREE.Mesh( backLeftPostGeometry, backLeftPostMaterial );
+const backLeftPost = createPost(W_POST, W_POST, H_POST / Math.cos(THETA_POSTS))
 makeRotationX(backLeftPost, THETA_POSTS)
 makeTranslation(backLeftPost, -D_POSTS / 2, 0, -(H_POST * Math.tan(THETA_POSTS)) / 2)
-scene.add(backLeftPost);
 
-const backRightPostGeometry = new THREE.CylinderGeometry(W_POST, W_POST, H_POST / Math.cos(THETA_POSTS));
-const backRightPostMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF} );
-const backRightPost = new THREE.Mesh( backRightPostGeometry, backRightPostMaterial );
+const backRightPost = createPost(W_POST, W_POST, H_POST / Math.cos(THETA_POSTS));
 makeRotationX(backRightPost, THETA_POSTS);
 makeTranslation(backRightPost, D_POSTS / 2, 0, -(H_POST * Math.tan(THETA_POSTS)) / 2)
-scene.add(backRightPost);
 
-const frontLeftTorusGeometry = new THREE.TorusGeometry(0.1, 0.05, 2, 100)
-const frontLeftTorusMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF} );
-const frontLeftTorus = new THREE.Mesh( frontLeftTorusGeometry, frontLeftTorusMaterial );
-makeRotationX(frontLeftTorus, degrees_to_radians(90));
+const crossbar = createPost(W_POST, W_POST, D_POSTS + W_POST)
+makeRotationZ(crossbar, degrees_to_radians(90))
+makeTranslation(crossbar, 0, H_POST / 2, 0)
+
+const frontLeftTorus = createTorus();
 makeTranslation(frontLeftTorus, -D_POSTS / 2, -H_POST / 2, 0);
-scene.add(frontLeftTorus);
 
-const frontRightTorusGeometry = new THREE.TorusGeometry(0.1, 0.05, 2, 100)
-const frontRightTorusMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF} );
-const frontRightTorus = new THREE.Mesh( frontRightTorusGeometry, frontRightTorusMaterial );
-makeRotationX(frontRightTorus, degrees_to_radians(90))
-makeTranslation(frontRightTorus, D_POSTS / 2, -H_POST / 2, 0)
-scene.add(frontRightTorus);
+const frontRightTorus = createTorus();
+makeTranslation(frontRightTorus, D_POSTS / 2, -H_POST / 2, 0);
 
-const backLeftTorusGeometry = new THREE.TorusGeometry(0.1, 0.05, 2, 100)
-const backLeftTorusMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF} );
-const backLeftTorus = new THREE.Mesh( backLeftTorusGeometry, backLeftTorusMaterial );
-makeRotationX(backLeftTorus, degrees_to_radians(90))
+const backLeftTorus = createTorus();
 makeTranslation(backLeftTorus, -D_POSTS / 2, -H_POST / 2, -(H_POST * Math.tan(THETA_POSTS)))
-scene.add(backLeftTorus);
 
-const backRightTorusGeometry = new THREE.TorusGeometry(0.1, 0.05, 2, 100)
-const backRightTorusMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF} );
-const backRightTorus = new THREE.Mesh( backRightTorusGeometry, backRightTorusMaterial );
-makeRotationX(backRightTorus, degrees_to_radians(90))
+const backRightTorus = createTorus();
 makeTranslation(backRightTorus, D_POSTS / 2, -H_POST / 2, -(H_POST * Math.tan(THETA_POSTS)))
-scene.add(backRightTorus);
 
+goal.add(frontLeftPost, frontRightPost, backLeftPost, backRightPost, crossbar, frontLeftTorus, frontRightTorus, backLeftTorus, backRightTorus);
 
-
-const netWidth = D_POSTS;
-const netHeight = H_POST / Math.cos(THETA_POSTS);
-const netGeometry = new THREE.PlaneGeometry(netWidth, netHeight);
-
-const netMaterial = new THREE.MeshBasicMaterial({ color: 0xCCCCCC, side: THREE.DoubleSide });  // Light gray, visible from both sides
-
-const net = new THREE.Mesh(netGeometry, netMaterial);
-makeRotationX(net, THETA_POSTS);
-makeTranslation(net, 0, 0, -(H_POST * Math.tan(THETA_POSTS)) / 2);
-scene.add(net);
+const backNetGeometry = new THREE.PlaneGeometry(D_POSTS, H_POST / Math.cos(THETA_POSTS));
+const backNetMaterial = new THREE.MeshBasicMaterial({ color: 0xCCCCCC, side: THREE.DoubleSide });
+const backNet = new THREE.Mesh(backNetGeometry, backNetMaterial);
+makeRotationX(backNet, THETA_POSTS);
+makeTranslation(backNet, 0, 0, -(H_POST * Math.tan(THETA_POSTS)) / 2);
 
 const leftNetShape = new THREE.Shape();
 leftNetShape.lineTo(0, H_POST);
 leftNetShape.lineTo(-(H_POST * Math.tan(THETA_POSTS)), 0);
 leftNetShape.lineTo(0,0);
-
 const leftNetGeometry = new THREE.ShapeGeometry(leftNetShape);
-
 const leftNetMaterial = new THREE.MeshBasicMaterial({ color: 0xCCCCCC, side: THREE.DoubleSide });
-
-const leftNetMesh = new THREE.Mesh(leftNetGeometry, leftNetMaterial);
-
-const rotateMinus90YMatrix = new THREE.Matrix4().makeRotationY(degrees_to_radians(-90));
-const translationLeftNet = new THREE.Matrix4().makeTranslation(-D_POSTS / 2, -H_POST / 2, 0);
-const leftNetMatrix = translationLeftNet.multiply(rotateMinus90YMatrix);
-leftNetMesh.applyMatrix4(leftNetMatrix);
-
-scene.add(leftNetMesh);
-
+const leftNet = new THREE.Mesh(leftNetGeometry, leftNetMaterial);
+makeRotationY(leftNet, degrees_to_radians(-90));
+makeTranslation(leftNet,-D_POSTS / 2, -H_POST / 2, 0);
 
 const rightNetShape = new THREE.Shape();
 rightNetShape.lineTo(0, H_POST);
 rightNetShape.lineTo(H_POST * Math.tan(THETA_POSTS), 0);
 rightNetShape.lineTo(0,0);
-
 const rightNetGeometry = new THREE.ShapeGeometry(rightNetShape);
-
 const rightNetMaterial = new THREE.MeshBasicMaterial({ color: 0xCCCCCC, side: THREE.DoubleSide });
+const rightNet = new THREE.Mesh(rightNetGeometry, rightNetMaterial);
+makeRotationY(rightNet, degrees_to_radians(90));
+makeTranslation(rightNet, D_POSTS / 2, -H_POST / 2, 0)
 
-const rightNetMesh = new THREE.Mesh(rightNetGeometry, rightNetMaterial);
-
-const rotate90YMatrix = new THREE.Matrix4().makeRotationY(degrees_to_radians(90));
-const translationRightNet = new THREE.Matrix4().makeTranslation(D_POSTS / 2, -H_POST / 2, 0);
-const rightNetMatrix = translationRightNet.multiply(rotate90YMatrix);
-rightNetMesh.applyMatrix4(rightNetMatrix);
-
-scene.add(rightNetMesh);
+goal.add(frontLeftPost, frontRightPost, backLeftPost, backRightPost, crossbar, frontLeftTorus, frontRightTorus,
+	backLeftTorus, backRightTorus, backNet, leftNet, rightNet);
+scene.add(goal);
 
 const ballRadius  = H_POST / 16;
-
-const balPosition = {
-    x: 0,                              // Centered between the posts
-    y: -H_POST / 2 + ballRadius,      // Halfway up the goal's height, accounting for the radius of the ball
-    z: (H_POST * Math.tan(THETA_POSTS))    // Positioned in front of the goal by a distance of 1 unit (or your choice), accounting for the radius of the ball
-};
-
-const ballGeometry = new THREE.SphereGeometry(ballRadius, 32, 32);  // Adjust the second and third arguments for smoother sphere
-
-const ballMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });  // White ball, adjust color as needed
-
+const ballGeometry = new THREE.SphereGeometry(ballRadius, 32, 32);
+const ballMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
 const ball = new THREE.Mesh(ballGeometry, ballMaterial);
-
-ball.position.set(balPosition.x, balPosition.y, balPosition.z);
-
+makeTranslation(ball, 0, -H_POST / 2 + ballRadius, H_POST * Math.tan(THETA_POSTS))
 scene.add(ball);
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -175,17 +103,49 @@ const controls = new OrbitControls( camera, renderer.domElement );
 
 let isOrbitEnabled = true;
 let isWireframeEnabled = false;
+let isBallVerticalRotationEnabled = false;
+let isBallHorizontalRotationEnabled = false;
+let ballSpeed = 0.05;
+let goalScaleFactor = 0.95;
 
 const toggleOrbit = (e) => {
-	if (e.key == "o") {
+	if (e.key === 'o') {
 		isOrbitEnabled = !isOrbitEnabled;
 	}
 
-	if (e.key == "w") {
-		isWireframeEnabled = !isWireframeEnabled;
-		scene.children.forEach(child => {
-			child.material.wireframe = isWireframeEnabled;
-		})
+	if (isOrbitEnabled) {
+		switch (e.key) {
+			case 'w':
+				isWireframeEnabled = !isWireframeEnabled;
+				goal.children.forEach(child => {
+					child.material.wireframe = isWireframeEnabled;
+				})
+				ball.material.wireframe = isWireframeEnabled;
+				break;
+
+			case '1':
+				isBallHorizontalRotationEnabled = !isBallHorizontalRotationEnabled;
+				break;
+
+			case '2':
+				isBallVerticalRotationEnabled = !isBallVerticalRotationEnabled;
+				break;
+
+			case '3':
+				makeScale(goal, goalScaleFactor)
+				break;
+
+			case 'ArrowUp':
+				ballSpeed *= 2;
+				break;
+
+			case 'ArrowDown':
+				ballSpeed /= 2;
+				break;
+
+			default:
+				break;
+		}
 	}
 }
 
@@ -199,6 +159,15 @@ function animate() {
 	requestAnimationFrame( animate );
 
 	controls.enabled = isOrbitEnabled;
+
+	if (isBallVerticalRotationEnabled) {
+		makeRotationX(ball, ballSpeed)
+	}
+
+	if (isBallHorizontalRotationEnabled) {
+		makeRotationY(ball, ballSpeed)
+	}
+
 	controls.update();
 
 	renderer.render( scene, camera );
@@ -230,3 +199,25 @@ function makeRotationZ(obj, theta) {
 	obj.applyMatrix4(rotationMatrix);
 }
 
+function makeScale(obj, scaleFactor) {
+	const scaleMatrix = new THREE.Matrix4();
+	scaleMatrix.makeScale(scaleFactor, scaleFactor, scaleFactor);
+	obj.applyMatrix4(scaleMatrix);
+}
+
+function createPost(radiusTop, radiusBottom, height) {
+	const postGeometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, height);
+	const postMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF} );
+
+	return new THREE.Mesh( postGeometry, postMaterial );
+}
+
+function createTorus() {
+	const torusGeometry = new THREE.TorusGeometry(0.1, 0.05, 2, 100);
+	const torusMaterial = new THREE.MeshBasicMaterial( {color: 0xFFFFFF} );
+
+	const torus = new THREE.Mesh( torusGeometry, torusMaterial );
+	makeRotationX(torus, degrees_to_radians(90));
+
+	return torus;
+}
