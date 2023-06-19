@@ -16,7 +16,7 @@ function degrees_to_radians(degrees) {
 const H_POST = 2
 const W_POST = 0.07
 const D_POSTS = 3 * H_POST
-const THETA_POSTS = degrees_to_radians(40)
+const THETA_POSTS = degrees_to_radians(45)
 
 const goal = new THREE.Group();
 
@@ -89,6 +89,8 @@ const ball = new THREE.Mesh(ballGeometry, ballMaterial);
 makeTranslation(ball, 0, -H_POST / 2 + ballRadius, H_POST * Math.tan(THETA_POSTS))
 scene.add(ball);
 
+// Bonus
+const confettiGroup = new THREE.Group();
 
 // This defines the initial distance of the camera
 const cameraTranslate = new THREE.Matrix4();
@@ -103,7 +105,9 @@ let isOrbitEnabled = true;
 let isWireframeEnabled = false;
 let isBallVerticalRotationEnabled = false;
 let isBallHorizontalRotationEnabled = false;
-let ballSpeed = 0.05;
+let isConfettiEnabled = false;
+let isBallInsideGoal = false;
+let ballSpeedFactor = 0.05;
 let goalScaleFactor = 0.95;
 
 const toggleOrbit = (e) => {
@@ -130,15 +134,19 @@ const toggleOrbit = (e) => {
 				break;
 
 			case '3':
-				makeScale(goal, goalScaleFactor)
+				makeScale(goal, goalScaleFactor);
+				break;
+
+			case '4':
+				isConfettiEnabled = !isConfettiEnabled;
 				break;
 
 			case 'ArrowUp':
-				ballSpeed *= 2;
+				ballSpeedFactor *= 2;
 				break;
 
 			case 'ArrowDown':
-				ballSpeed /= 2;
+				ballSpeedFactor /= 2;
 				break;
 
 			default:
@@ -147,7 +155,7 @@ const toggleOrbit = (e) => {
 	}
 }
 
-document.addEventListener('keydown', toggleOrbit)
+document.addEventListener('keydown', toggleOrbit);
 
 //controls.update() must be called after any manual changes to the camera's transform
 controls.update();
@@ -159,17 +167,34 @@ function animate() {
 	controls.enabled = isOrbitEnabled;
 
 	if (isBallVerticalRotationEnabled) {
-		makeRotationX(ball, ballSpeed)
+		makeRotationX(ball, ballSpeedFactor);
 	}
 
 	if (isBallHorizontalRotationEnabled) {
-		makeRotationY(ball, ballSpeed)
+		makeRotationY(ball, ballSpeedFactor);
 	}
+
+	const goalBoundingBox = new THREE.Box3().setFromObject(goal);
+	if (isConfettiEnabled && goalBoundingBox.containsPoint(ball.position) && !isBallInsideGoal) {
+		isBallInsideGoal = true;
+		createConfetti();
+	}
+
+	if (!goalBoundingBox.containsPoint(ball.position) && isBallInsideGoal) {
+		isBallInsideGoal = false;
+	}
+
+	confettiGroup.children.forEach((confetti) => {
+		makeTranslation(confetti, 0, -ballSpeedFactor, 0);
+
+		if (confetti.position.y < -H_POST) {
+			confettiGroup.remove(confetti);
+		}
+	});
 
 	controls.update();
 
 	renderer.render(scene, camera);
-
 }
 
 animate()
@@ -212,11 +237,29 @@ function createPost(radiusTop, radiusBottom, height) {
 }
 
 function createTorus() {
-	const torusGeometry = new THREE.TorusGeometry(0.1, 0.05, 2, 100);
+	const torusGeometry = new THREE.TorusGeometry(0.1, 0.05, 3, 100);
 	const torusMaterial = new THREE.MeshBasicMaterial({color: 0xFFFFFF});
-
 	const torus = new THREE.Mesh(torusGeometry, torusMaterial);
 	makeRotationX(torus, degrees_to_radians(90));
 
 	return torus;
+}
+
+function createConfetti() {
+	const confettiColors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00];
+
+	for (let i = 0; i < 500; i++) {
+		const confettiGeometry = new THREE.PlaneGeometry(0.1, 0.1);
+		const confettiMaterial = new THREE.MeshBasicMaterial({color: confettiColors[Math.floor(Math.random() * confettiColors.length)]});
+		const confetti = new THREE.Mesh(confettiGeometry, confettiMaterial);
+
+		makeTranslation(confetti, Math.random() * 6 - 3, Math.random() * 6 - 3, Math.random() * 6 - 3);
+		makeRotationX(confetti, Math.random() * Math.PI);
+		makeRotationY(confetti, Math.random() * Math.PI);
+		makeRotationZ(confetti, Math.random() * Math.PI);
+
+		confettiGroup.add(confetti);
+	}
+
+	scene.add(confettiGroup);
 }
