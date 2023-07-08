@@ -205,7 +205,7 @@ class Card {
 	}
 }
 
-const textures = [redCardTexture, yellowCardTexture];
+const textures = [yellowCardTexture, redCardTexture];
 const cards = [];
 const numberOfCards = 7;
 const numberOfVarCards = 3;
