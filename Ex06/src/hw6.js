@@ -37,6 +37,7 @@ scene.background = texture;
 const ballTexture = new THREE.TextureLoader().load('src/textures/soccer_ball.jpg');
 const redCardTexture = new THREE.TextureLoader().load('src/textures/red_card.jpg');
 const yellowCardTexture = new THREE.TextureLoader().load('src/textures/yellow_card.jpg');
+const varCardTexture = new THREE.TextureLoader().load('src/textures/var_card.jpg');
 
 
 // TODO: Add Lighting
@@ -207,8 +208,14 @@ class Card {
 const textures = [redCardTexture, yellowCardTexture];
 const cards = [];
 const numberOfCards = 7;
+const numberOfVarCards = 3;
 for (let i = 1; i <= numberOfCards; i++) {
 	const card = new Card(curves[i % 3], i / (numberOfCards + 1), textures[i % 2]);
+	cards.push(card);
+}
+for (let i = 1; i <= numberOfVarCards; i++) {
+	const t = 0.2 * i;
+	const card = new Card(curves[i % 3], t, varCardTexture);
 	cards.push(card);
 }
 
@@ -232,22 +239,10 @@ const totalIncrements = 3000;
 let currentIncrement = 0;
 let startPosition = rightCurve.getPoints(totalIncrements)[0];
 ball.position.copy(startPosition);
-let restartGame = false;
 
 function animate() {
 	requestAnimationFrame(animate);
 	renderer.render(scene, camera);
-
-	if (restartGame) {
-		currentIncrement = 0;
-		const startPosition = rightCurve.getPoints(totalIncrements)[0];
-		ball.position.copy(startPosition);
-		cards.map(card => {
-			card.hit = false;
-			card.object3d.visible = true;
-		});
-		restartGame = false;
-	}
 
 	// TODO: Animation for the ball's position
 	const t = currentIncrement / totalIncrements;
@@ -273,14 +268,15 @@ function animate() {
 		const collectedCards = cards.filter(card => card.hit === true);
 		const collectedYellowCards = collectedCards.filter(card => card.texture === yellowCardTexture).length;
 		const collectedRedCards = collectedCards.filter(card => card.texture === redCardTexture).length;
+		const collectedVarCards = collectedCards.filter(card => card.texture === varCardTexture).length;
 		const power = -(collectedYellowCards + 10 * collectedRedCards) / 10;
-		const fairPlayScore = 100 * Math.pow(2, power);
+		const fairPlayScore = 100 * Math.pow(2, power) + 3 * collectedVarCards;
 		alert("Your fair play score is: " + fairPlayScore.toFixed(2));
-		restartGame = true;
+		window.location.reload(true);
 	}
 }
 
-animate()
+animate();
 
 function makeTranslation(obj, x, y, z) {
 	const translationMatrix = new THREE.Matrix4();
